@@ -1,0 +1,87 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tokens do painel (RGB separados por espaço para suportar opacidade no Tailwind) */
+:root {
+  --fundo: 248 250 252;
+  --superficie: 255 255 255;
+  --elevado: 241 245 249;
+  --borda: 226 232 240;
+  --texto: 15 23 42;
+  --suave: 71 85 105;
+  --fraco: 148 163 184;
+  color-scheme: light;
+}
+:root[data-tema='dark'] {
+  --fundo: 15 23 42;
+  --superficie: 30 41 59;
+  --elevado: 51 65 85;
+  --borda: 51 65 85;
+  --texto: 241 245 249;
+  --suave: 203 213 225;
+  --fraco: 148 163 184;
+  color-scheme: dark;
+}
+:root[data-tema='night'] {
+  --fundo: 0 0 0;
+  --superficie: 10 10 12;
+  --elevado: 24 24 27;
+  --borda: 39 39 42;
+  --texto: 228 228 231;
+  --suave: 161 161 170;
+  --fraco: 113 113 122;
+  color-scheme: dark;
+}
+
+@layer base {
+  body {
+    @apply bg-fundo text-texto font-sans antialiased;
+    font-size: 14px;
+  }
+}
+
+@layer components {
+  .input {
+    @apply w-full rounded-md border border-borda bg-superficie px-3 py-1.5 text-sm text-texto
+      placeholder:text-fraco focus:border-marca focus:outline-none focus:ring-2 focus:ring-marca/20
+      disabled:opacity-60;
+  }
+  .label {
+    @apply mb-1 block text-xs font-medium text-suave;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium
+      transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primario {
+    @apply btn bg-marca text-white hover:bg-marca-700;
+  }
+  .btn-secundario {
+    @apply btn border border-borda bg-superficie text-texto hover:bg-elevado;
+  }
+  .btn-fantasma {
+    @apply btn text-suave hover:bg-elevado hover:text-texto;
+  }
+  .btn-perigo {
+    @apply btn bg-red-600 text-white hover:bg-red-700;
+  }
+  .card {
+    @apply rounded-lg border border-borda bg-superficie;
+  }
+  /* Tabelas densas */
+  .tabela {
+    @apply w-full border-collapse text-[13px];
+  }
+  .tabela th {
+    @apply sticky top-0 z-10 border-b border-borda bg-elevado px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-suave;
+  }
+  .tabela td {
+    @apply border-b border-borda px-3 py-1.5 align-middle;
+  }
+  .tabela tbody tr:hover {
+    @apply bg-elevado/60;
+  }
+}
