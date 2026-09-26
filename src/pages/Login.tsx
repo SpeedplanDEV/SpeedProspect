@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Zap } from 'lucide-react';
-import { supabase, supabaseConfigurado } from '@/lib/supabase';
+import { supabase, supabaseConfigurado, supabaseUrl } from '@/lib/supabase';
 import { useAuth } from '@/app/auth';
 import { CampoErro } from '@/components/ui/Pagina';
 
@@ -28,9 +28,7 @@ export default function Login() {
   const entrar = async (dados: Form) => {
     setErro(null);
     const { error } = await supabase.auth.signInWithPassword({ email: dados.email, password: dados.senha });
-    if (error) {
-      setErro(error.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : error.message);
-    }
+    if (error) setErro(traduzirErro(error.message));
   };
 
   return (
@@ -67,4 +65,15 @@ export default function Login() {
       </form>
     </div>
   );
+}
+
+// Mensagens do Supabase Auth em pt-BR, com dica de correção
+function traduzirErro(msg: string): string {
+  if (msg === 'Invalid login credentials') return 'E-mail ou senha incorretos.';
+  if (msg === 'Email not confirmed') return 'E-mail ainda não confirmado. Confirme o usuário no Supabase (Authentication → Users).';
+  if (/email logins are disabled/i.test(msg))
+    return 'Login por e-mail está desativado no Supabase. Ative em Authentication → Sign In / Providers → Email.';
+  if (/failed to fetch|networkerror|load failed/i.test(msg))
+    return `Não foi possível conectar ao Supabase (${supabaseUrl}). Verifique VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY e refaça o build/deploy.`;
+  return msg;
 }
