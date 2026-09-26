@@ -52,3 +52,11 @@ npm run lint
 | `/optout/:token` | pública | “Não quero receber propostas” (Fase 4) |
 
 Em produção, configure o servidor/CDN para responder `index.html` em qualquer rota (SPA fallback).
+
+## Publicar na web (Vercel)
+
+1. Em https://vercel.com, **Add New → Project** e importe o repositório `SpeedplanDEV/SpeedProspect`.
+2. Em **Environment Variables**, adicione `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` e `VITE_APP_URL`
+   (a URL que a Vercel gerar, ex.: `https://speedprospect.vercel.app`).
+3. **Deploy**. O `vercel.json` já configura o build do Vite e o fallback de rotas da SPA.
+   (Netlify também funciona: `public/_redirects` faz o mesmo papel.)
