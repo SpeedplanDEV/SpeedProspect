@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Play, RefreshCw } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Loader2, Play, RefreshCw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatarDataHora, formatarDuracao, formatarMoeda, formatarNumero } from '@/lib/format';
 import type { Campanha, EntradaLog, Execucao } from '@/lib/types';
 import { Badge, Erro, Pagina, Vazio } from '@/components/ui/Pagina';
 import { Drawer } from '@/components/ui/Drawer';
+import { useToast } from '@/components/ui/Toast';
+import { chamarFuncao, textoResumoColeta, type ResumoColeta } from '@/lib/funcoes';
 
 const ETAPAS = [
   { valor: '', rotulo: 'Todas as etapas' },
@@ -24,6 +26,18 @@ function StatusExecucao({ ex }: { ex: Execucao }) {
 export default function Execucoes() {
   const [etapa, setEtapa] = useState('');
   const [selecionada, setSelecionada] = useState<Execucao | null>(null);
+  const qc = useQueryClient();
+  const toast = useToast();
+
+  const coletar = useMutation({
+    mutationFn: () => chamarFuncao<ResumoColeta>('coletar', {}),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ['execucoes'] });
+      qc.invalidateQueries({ queryKey: ['campanhas'] });
+      toast(textoResumoColeta(r), r.resumo.some((x) => x.erro) ? 'erro' : 'sucesso');
+    },
+    onError: (e: Error) => toast(e.message, 'erro'),
+  });
 
   const campanhas = useQuery({
     queryKey: ['campanhas'],
@@ -60,8 +74,14 @@ export default function Execucoes() {
           <button className="btn-secundario" onClick={() => refetch()} disabled={isFetching}>
             <RefreshCw size={15} className={isFetching ? 'animate-spin' : ''} /> Atualizar
           </button>
-          <button className="btn-primario" disabled title="Disponível a partir da Fase 2">
-            <Play size={15} /> Executar agora
+          <button
+            className="btn-primario"
+            disabled={coletar.isPending}
+            title="Executa a coleta de todas as campanhas ativas"
+            onClick={() => coletar.mutate()}
+          >
+            {coletar.isPending ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />}
+            {coletar.isPending ? 'Coletando…' : 'Executar coleta agora'}
           </button>
         </>
       }

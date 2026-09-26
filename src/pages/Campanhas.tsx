@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Pencil, Play, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Pencil, Play, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatarDataHora, formatarNumero } from '@/lib/format';
 import { campanhaSchema, type CampanhaDados, type CampanhaForm } from '@/lib/schemas';
@@ -12,9 +12,8 @@ import { Drawer } from '@/components/ui/Drawer';
 import { Switch } from '@/components/ui/Switch';
 import { TagInput } from '@/components/ui/TagInput';
 import { useToast } from '@/components/ui/Toast';
+import { chamarFuncao, textoResumoColeta, type ResumoColeta } from '@/lib/funcoes';
 
-// "Executar agora" é habilitado na Fase 2 (Edge Function `coletar`)
-const EXECUCAO_DISPONIVEL = false;
 
 const VAZIA: CampanhaForm = {
   nome: '',
@@ -47,6 +46,18 @@ export default function Campanhas() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['campanhas'] }),
+    onError: (e: Error) => toast(e.message, 'erro'),
+  });
+
+  const executar = useMutation({
+    mutationFn: (c: Campanha) => chamarFuncao<ResumoColeta>('coletar', { campanha_id: c.id }),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ['campanhas'] });
+      qc.invalidateQueries({ queryKey: ['execucoes'] });
+      qc.invalidateQueries({ queryKey: ['leads'] });
+      const erro = r.resumo.some((x) => x.erro);
+      toast(textoResumoColeta(r), erro ? 'erro' : 'sucesso');
+    },
     onError: (e: Error) => toast(e.message, 'erro'),
   });
 
@@ -119,10 +130,15 @@ export default function Campanhas() {
                     <div className="flex items-center gap-1">
                       <button
                         className="btn-secundario whitespace-nowrap px-2 py-1 text-xs"
-                        disabled={!EXECUCAO_DISPONIVEL || !c.ativa}
-                        title={EXECUCAO_DISPONIVEL ? 'Executar coleta agora' : 'Disponível a partir da Fase 2'}
+                        disabled={!c.ativa || executar.isPending}
+                        title={c.ativa ? 'Buscar empresas desta campanha no Google Maps agora' : 'Ative a campanha para executar'}
+                        onClick={() => executar.mutate(c)}
                       >
-                        <Play size={13} /> Executar agora
+                        {executar.isPending && executar.variables?.id === c.id ? (
+                          <><Loader2 size={13} className="animate-spin" /> Coletando…</>
+                        ) : (
+                          <><Play size={13} /> Executar agora</>
+                        )}
                       </button>
                       <button className="btn-fantasma p-1.5" title="Editar" onClick={() => setEditando(c)}>
                         <Pencil size={14} />

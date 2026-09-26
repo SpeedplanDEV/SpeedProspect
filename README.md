@@ -3,7 +3,7 @@
 Sistema interno de prospecção: busca empresas no Google Maps (Places API New), qualifica,
 gera uma landing page de prévia com a Claude API e prepara a abordagem por WhatsApp (envio com 1 clique pelo operador).
 
-> Status: **Fase 1 — Fundação** (painel, login, configurações, campanhas, execuções).
+> Status: **Fase 2 — Coleta** (Google Places API New, cache de 30 dias, página Leads).
 > O README completo de operação é entregue na Fase 7.
 
 ## Requisitos
@@ -60,3 +60,28 @@ Em produção, configure o servidor/CDN para responder `index.html` em qualquer 
    (a URL que a Vercel gerar, ex.: `https://speedprospect.vercel.app`).
 3. **Deploy**. O `vercel.json` já configura o build do Vite e o fallback de rotas da SPA.
    (Netlify também funciona: `public/_redirects` faz o mesmo papel.)
+
+## Fase 2 — Coleta (Edge Functions)
+
+| Função | Acesso | O que faz |
+|---|---|---|
+| `coletar` | operador logado ou service role | Text Search do Places por campanha (termo + cidade e termo + bairro), até 3 páginas por consulta, grava/atualiza `leads` |
+| `foto` | pública (60 req/min por IP) | `GET /foto?name=<photo.name>&w=1200` → redireciona (302) para a foto do Google, cache de 1 dia |
+
+Regras da coleta:
+- Cada página do Text Search conta 1 no `limite_buscas_dia` (somado em `execucoes.chamadas_api`).
+- A mesma consulta não é repetida por 30 dias (`buscas_cache`); um `place_id` coletado há menos de 30 dias não é atualizado.
+- `place_id` ou telefone em `bloqueios` são ignorados; empresas fora da cidade da campanha também.
+- Custo estimado em R$ por execução (preço por SKU em `supabase/functions/_shared/places.ts`, cotação no secret `COTACAO_DOLAR`, padrão 5,50).
+
+### Setup
+1. Rode `supabase/migrations/20260926000000_fase2_coleta.sql` no SQL Editor.
+2. Google Cloud: ative **Places API (New)**, crie uma API key restrita a ela (billing obrigatório).
+3. Supabase → **Edge Functions → Secrets**: `GOOGLE_PLACES_API_KEY` (e opcionalmente `COTACAO_DOLAR`).
+4. Deploy das funções, uma das opções:
+   - GitHub Actions: crie um token em https://supabase.com/dashboard/account/tokens, salve como secret
+     `SUPABASE_ACCESS_TOKEN` no repositório e rode **Actions → Deploy Edge Functions → Run workflow**
+     (também roda sozinho a cada push em `supabase/functions`).
+   - CLI: `supabase functions deploy --project-ref ruseutthqcknhkqpqmyj`
+
+Testes: `npm test` (normalização de telefone, bairro/cidade e montagem das consultas).

@@ -12,6 +12,7 @@ const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const Campanhas = lazy(() => import('@/pages/Campanhas'));
 const Configuracoes = lazy(() => import('@/pages/Configuracoes'));
 const Execucoes = lazy(() => import('@/pages/Execucoes'));
+const Leads = lazy(() => import('@/pages/Leads'));
 const EmBreve = lazy(() => import('@/pages/EmBreve'));
 const PaginaPrevia = lazy(() => import('@/public-site/PaginaPrevia'));
 const PaginaOptout = lazy(() => import('@/public-site/PaginaOptout'));
@@ -48,7 +49,7 @@ export default function App() {
                       >
                         <Route index element={<Dashboard />} />
                         <Route path="campanhas" element={<Campanhas />} />
-                        <Route path="leads" element={<EmBreve titulo="Leads" fase={2} />} />
+                        <Route path="leads" element={<Leads />} />
                         <Route path="aprovacao" element={<EmBreve titulo="Aprovação" fase={5} />} />
                         <Route path="envios" element={<EmBreve titulo="Envios" fase={5} />} />
                         <Route path="funil" element={<EmBreve titulo="Funil" fase={6} />} />

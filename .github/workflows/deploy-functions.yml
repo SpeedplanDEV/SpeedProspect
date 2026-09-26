@@ -1,0 +1,29 @@
+# Publica as Edge Functions no Supabase sempre que supabase/functions mudar.
+# Requer o secret SUPABASE_ACCESS_TOKEN (GitHub → Settings → Secrets and variables → Actions).
+name: Deploy Edge Functions
+
+on:
+  push:
+    branches: [main, claude/speedprospect-ia-prospeccao-xshh27]
+    paths: ['supabase/functions/**', 'supabase/config.toml', '.github/workflows/deploy-functions.yml']
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: ruseutthqcknhkqpqmyj
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Verificar token
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "::error::Cadastre o secret SUPABASE_ACCESS_TOKEN no GitHub (veja o README)."
+            exit 1
+          fi
+      - name: Deploy
+        run: supabase functions deploy --project-ref "$PROJECT_REF" --use-api

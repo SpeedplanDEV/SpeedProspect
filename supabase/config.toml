@@ -1,0 +1,10 @@
+# Configuração mínima do Supabase CLI para o deploy das Edge Functions.
+project_id = "ruseutthqcknhkqpqmyj"
+
+# A autenticação é feita dentro de cada função (service role ou JWT do operador);
+# `foto`, `track` e `optout` são públicas.
+[functions.coletar]
+verify_jwt = false
+
+[functions.foto]
+verify_jwt = false
