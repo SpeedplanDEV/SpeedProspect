@@ -5,8 +5,11 @@ import type { PropsTemplate } from '../types';
 import { comContraste, corValida, misturar, textoSobre } from '../_comum/cores';
 import { colunasServicos, contatoEmpresa, diaDeHoje, enderecoCurto, idSecao, linkTelefone, notaBR, numeroBR } from '../_comum/util';
 import { useFontes } from '../_comum/useFontes';
+import { AvaliacoesGoogle } from '../_comum/AvaliacoesGoogle';
+import { avaliacoesParaExibir } from '../_comum/avaliacoes';
+import { Mapa } from '../_comum/Mapa';
+import { Galeria } from '../_comum/Galeria';
 import { Foto } from '../_comum/Foto';
-import { Estrelas } from '../_comum/Estrelas';
 import { Faq } from '../_comum/Faq';
 import { Icone } from '../_comum/Icone';
 import { InfoLegal } from '../_comum/Rodape';
@@ -18,8 +21,9 @@ const FUNDO = '#0c0e12';
 const PAINEL = '#15181e';
 const condensada = { fontFamily: "'Barlow Condensed', 'Arial Narrow', Impact, sans-serif" } as CSSProperties;
 
-export default function TemplateAutomotivo({ conteudo: c, fotos, atribuicoes, previa, aoContatar }: PropsTemplate) {
+export default function TemplateAutomotivo({ conteudo: c, fotos, atribuicoes, avaliacoes = [], previa, aoContatar }: PropsTemplate) {
   useFontes(FONTE);
+  const listaAvaliacoes = avaliacoesParaExibir(c.depoimentos, avaliacoes);
   // No fundo escuro a cor de destaque precisa ser clara o bastante
   const cor = comContraste(corValida(c.tema.cor_primaria, '#f59e0b'), FUNDO, 5);
   const sobreCor = textoSobre(cor);
@@ -107,6 +111,8 @@ export default function TemplateAutomotivo({ conteudo: c, fotos, atribuicoes, pr
         </div>
       </section>
 
+      <Galeria fotos={fotos} nome={c.empresa.nome} cor={misturar(cor, FUNDO, 0.6)} escuro={true} estiloTitulo={condensada} />
+
       {/* Diferenciais */}
       <section className="bg-[var(--painel)]">
         <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 md:grid-cols-[.9fr_1.1fr]">
@@ -143,25 +149,18 @@ export default function TemplateAutomotivo({ conteudo: c, fotos, atribuicoes, pr
         </ol>
       </section>
 
-      {/* Depoimentos */}
-      {c.depoimentos.length > 0 && (
-        <section id={idSecao.avaliacoes} className="scroll-mt-24 border-y border-white/5 bg-[var(--painel)]">
-          <div className="mx-auto max-w-6xl px-5 py-20">
-            <Cabecalho sobre="Avaliações reais no Google" titulo="Quem já passou por aqui" />
-            <div className={`mt-12 grid gap-5 ${c.depoimentos.length > 2 ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
-              {c.depoimentos.map((d, i) => (
-                <figure key={i} className="flex flex-col bg-[var(--fundo)] p-7">
-                  <Estrelas nota={d.nota} cor={cor} />
-                  <blockquote className="mt-4 flex-1 text-lg leading-relaxed text-zinc-200">“{d.texto}”</blockquote>
-                  <figcaption className="mt-6 text-sm uppercase tracking-wider text-zinc-400">
-                    <span className="font-[600] text-white">{d.autor}</span>{d.data ? ` · ${d.data}` : ''}
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+      {/* Avaliações reais do Google */}
+      <AvaliacoesGoogle
+        conteudo={c}
+        avaliacoes={listaAvaliacoes}
+        id={idSecao.avaliacoes}
+        sobre="Avaliações reais no Google"
+        titulo="Quem já passou por aqui"
+        escuro={true}
+        cor={cor}
+        raio={'rounded-none'}
+        estiloTitulo={condensada} classeTitulo="font-[800] uppercase"
+      />
 
       {/* Localização */}
       <section id={idSecao.contato} className="mx-auto grid max-w-6xl scroll-mt-24 gap-10 px-5 py-20 md:grid-cols-2">
@@ -202,6 +201,12 @@ export default function TemplateAutomotivo({ conteudo: c, fotos, atribuicoes, pr
           </div>
         )}
       </section>
+
+      {c.empresa.endereco && (
+        <div className="mx-auto max-w-6xl px-5 pt-16">
+          <Mapa endereco={c.empresa.endereco} nome={c.empresa.nome} className="h-72 rounded-2xl ring-1 ring-white/10 sm:h-80" />
+        </div>
+      )}
 
       {/* FAQ */}
       {c.faq.length > 0 && (

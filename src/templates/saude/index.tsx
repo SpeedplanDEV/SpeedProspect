@@ -6,6 +6,10 @@ import type { PropsTemplate } from '../types';
 import { comContraste, corValida, misturar, textoSobre } from '../_comum/cores';
 import { colunasServicos, contatoEmpresa, diaDeHoje, enderecoCurto, idSecao, iniciais, linkTelefone, notaBR, numeroBR } from '../_comum/util';
 import { useFontes } from '../_comum/useFontes';
+import { AvaliacoesGoogle } from '../_comum/AvaliacoesGoogle';
+import { avaliacoesParaExibir } from '../_comum/avaliacoes';
+import { Mapa } from '../_comum/Mapa';
+import { Galeria } from '../_comum/Galeria';
 import { Foto } from '../_comum/Foto';
 import { Estrelas } from '../_comum/Estrelas';
 import { Faq } from '../_comum/Faq';
@@ -15,8 +19,9 @@ import { WhatsFlutuante } from '../_comum/WhatsFlutuante';
 
 const FONTE = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap';
 
-export default function TemplateSaude({ conteudo: c, fotos, atribuicoes, previa, aoContatar }: PropsTemplate) {
+export default function TemplateSaude({ conteudo: c, fotos, atribuicoes, avaliacoes = [], previa, aoContatar }: PropsTemplate) {
   useFontes(FONTE);
+  const listaAvaliacoes = avaliacoesParaExibir(c.depoimentos, avaliacoes);
   const cor = corValida(c.tema.cor_primaria, '#0f766e');
   const corTexto = comContraste(cor, '#ffffff', 4.5);
   const sobreCor = textoSobre(cor);
@@ -49,7 +54,7 @@ export default function TemplateSaude({ conteudo: c, fotos, atribuicoes, previa,
           </a>
           <nav className="hidden items-center gap-7 text-sm font-[600] text-slate-600 md:flex">
             <a href={`#${idSecao.servicos}`} className="hover:text-[var(--cor-texto)]">Serviços</a>
-            {c.depoimentos.length > 0 && <a href={`#${idSecao.avaliacoes}`} className="hover:text-[var(--cor-texto)]">Avaliações</a>}
+            {listaAvaliacoes.length > 0 && <a href={`#${idSecao.avaliacoes}`} className="hover:text-[var(--cor-texto)]">Avaliações</a>}
             <a href={`#${idSecao.contato}`} className="hover:text-[var(--cor-texto)]">Localização</a>
           </nav>
           <LinkContato contato={contato} aoContatar={aoContatar} className={classeBotao()}>
@@ -141,6 +146,8 @@ export default function TemplateSaude({ conteudo: c, fotos, atribuicoes, previa,
         </div>
       </section>
 
+      <Galeria fotos={fotos} nome={c.empresa.nome} cor={misturar(cor, '#ffffff', 0.3)} escuro={false} />
+
       {/* Diferenciais */}
       <section className="bg-[var(--suave)]">
         <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 py-20 md:grid-cols-2">
@@ -162,29 +169,18 @@ export default function TemplateSaude({ conteudo: c, fotos, atribuicoes, previa,
         </div>
       </section>
 
-      {/* Depoimentos */}
-      {c.depoimentos.length > 0 && (
-        <section id={idSecao.avaliacoes} className="mx-auto max-w-6xl scroll-mt-28 px-5 py-20">
-          <Titulo sobre="Avaliações reais no Google" titulo="O que dizem nossos pacientes" />
-          <div className={`mt-12 grid gap-5 ${c.depoimentos.length > 2 ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
-            {c.depoimentos.map((d, i) => (
-              <figure key={i} className={`flex flex-col ${raio} border border-slate-100 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,.04)]`}>
-                <Estrelas nota={d.nota} />
-                <blockquote className="mt-4 flex-1 leading-relaxed text-slate-700">“{d.texto}”</blockquote>
-                <figcaption className="mt-6 flex items-center gap-3 border-t border-slate-100 pt-5">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--suave)] text-sm font-[800] text-[var(--cor-texto)]">
-                    {d.autor.charAt(0).toUpperCase()}
-                  </span>
-                  <span className="text-sm">
-                    <span className="block font-[700] text-slate-900">{d.autor}</span>
-                    <span className="text-slate-500">{d.data ? `${d.data} · ` : ''}Google</span>
-                  </span>
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Avaliações reais do Google */}
+      <AvaliacoesGoogle
+        conteudo={c}
+        avaliacoes={listaAvaliacoes}
+        id={idSecao.avaliacoes}
+        sobre="Avaliações reais no Google"
+        titulo="O que dizem nossos pacientes"
+        escuro={false}
+        cor={corTexto}
+        raio={raio}
+        classeTitulo="font-[800] tracking-tight"
+      />
 
       {/* Localização e horários */}
       <section id={idSecao.contato} className="scroll-mt-28 bg-slate-900 text-slate-100">
@@ -228,6 +224,12 @@ export default function TemplateSaude({ conteudo: c, fotos, atribuicoes, previa,
           )}
         </div>
       </section>
+
+      {c.empresa.endereco && (
+        <div className="mx-auto max-w-6xl px-5 pt-16">
+          <Mapa endereco={c.empresa.endereco} nome={c.empresa.nome} className="h-72 rounded-2xl ring-1 ring-black/5 sm:h-80" />
+        </div>
+      )}
 
       {/* FAQ */}
       {c.faq.length > 0 && (

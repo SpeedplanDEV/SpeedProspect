@@ -1,12 +1,14 @@
 // Template ALIMENTAÇÃO — restaurantes, lanchonetes, cafés, pizzarias. Identidade: calorosa, apetitosa, fotos em destaque.
 import type { CSSProperties } from 'react';
-import { Clock, MapPin, Navigation, Phone, Quote, Star } from 'lucide-react';
+import { Clock, MapPin, Navigation, Phone, Star } from 'lucide-react';
 import type { PropsTemplate } from '../types';
 import { comContraste, corValida, misturar, textoSobre } from '../_comum/cores';
 import { contatoEmpresa, diaDeHoje, enderecoCurto, idSecao, linkTelefone, notaBR, numeroBR } from '../_comum/util';
 import { useFontes } from '../_comum/useFontes';
+import { AvaliacoesGoogle } from '../_comum/AvaliacoesGoogle';
+import { avaliacoesParaExibir } from '../_comum/avaliacoes';
+import { Mapa } from '../_comum/Mapa';
 import { Foto } from '../_comum/Foto';
-import { Estrelas } from '../_comum/Estrelas';
 import { Faq } from '../_comum/Faq';
 import { Icone } from '../_comum/Icone';
 import { InfoLegal } from '../_comum/Rodape';
@@ -19,8 +21,9 @@ const CREME = '#fff8ef';
 const MARROM = '#2a1a12';
 const serif = { fontFamily: "'Fraunces', Georgia, 'Times New Roman', serif" } as CSSProperties;
 
-export default function TemplateAlimentacao({ conteudo: c, fotos, atribuicoes, previa, aoContatar }: PropsTemplate) {
+export default function TemplateAlimentacao({ conteudo: c, fotos, atribuicoes, avaliacoes = [], previa, aoContatar }: PropsTemplate) {
   useFontes(FONTE);
+  const listaAvaliacoes = avaliacoesParaExibir(c.depoimentos, avaliacoes);
   const cor = corValida(c.tema.cor_primaria, '#c2410c');
   const corTexto = comContraste(cor, CREME, 4.5);
   const sobreCor = textoSobre(cor);
@@ -119,27 +122,18 @@ export default function TemplateAlimentacao({ conteudo: c, fotos, atribuicoes, p
         </div>
       </section>
 
-      {/* Depoimentos */}
-      {c.depoimentos.length > 0 && (
-        <section id={idSecao.avaliacoes} className="mx-auto max-w-6xl scroll-mt-24 px-5 py-20">
-          <div className="text-center">
-            <p className="text-sm font-[700] uppercase tracking-[.2em] text-[var(--cor-texto)]">Avaliações no Google</p>
-            <h2 className="mt-3 text-4xl sm:text-5xl" style={serif}>Quem vem, recomenda</h2>
-          </div>
-          <div className="mt-12 flex snap-x snap-mandatory gap-5 overflow-x-auto pb-3 [scrollbar-width:none] md:grid md:grid-cols-3 md:overflow-visible">
-            {c.depoimentos.map((d, i) => (
-              <figure key={i} className="w-[85%] shrink-0 snap-center rounded-3xl bg-white p-8 shadow-[0_20px_45px_-30px_rgba(42,26,18,.45)] md:w-auto">
-                <Quote className="h-8 w-8 text-[var(--cor-texto)]" aria-hidden />
-                <blockquote className="mt-4 text-xl leading-snug" style={serif}>{d.texto}</blockquote>
-                <figcaption className="mt-6 flex items-center justify-between gap-3 text-sm">
-                  <span className="font-[700]">{d.autor}</span>
-                  <Estrelas nota={d.nota} className="h-3.5 w-3.5" />
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Avaliações reais do Google */}
+      <AvaliacoesGoogle
+        conteudo={c}
+        avaliacoes={listaAvaliacoes}
+        id={idSecao.avaliacoes}
+        sobre="Avaliações no Google"
+        titulo="Quem vem, recomenda"
+        escuro={false}
+        cor={corTexto}
+        raio={'rounded-3xl'}
+        estiloTitulo={serif} classeTitulo=""
+      />
 
       {/* Visite */}
       <section id={idSecao.contato} className="scroll-mt-24 px-5 pb-20">
@@ -180,6 +174,12 @@ export default function TemplateAlimentacao({ conteudo: c, fotos, atribuicoes, p
           </div>
         </div>
       </section>
+
+      {c.empresa.endereco && (
+        <div className="mx-auto max-w-6xl px-5 pt-16">
+          <Mapa endereco={c.empresa.endereco} nome={c.empresa.nome} className="h-72 rounded-2xl ring-1 ring-black/5 sm:h-80" />
+        </div>
+      )}
 
       {/* FAQ */}
       {c.faq.length > 0 && (

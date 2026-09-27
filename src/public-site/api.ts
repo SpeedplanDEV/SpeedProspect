@@ -13,6 +13,7 @@ export interface SitePublico {
   publicado: boolean;
   token_optout: string;
   fotos: { name: string; atribuicao: string | null; atribuicao_uri: string | null }[];
+  avaliacoes?: { autor: string; nota: number; texto: string; data: string }[];
   negocio_nome: string;
   negocio_whatsapp: string;
 }

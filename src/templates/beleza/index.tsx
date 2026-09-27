@@ -5,6 +5,9 @@ import type { PropsTemplate } from '../types';
 import { comContraste, corValida, misturar, textoSobre } from '../_comum/cores';
 import { contatoEmpresa, diaDeHoje, enderecoCurto, idSecao, linkTelefone, notaBR, numeroBR } from '../_comum/util';
 import { useFontes } from '../_comum/useFontes';
+import { AvaliacoesGoogle } from '../_comum/AvaliacoesGoogle';
+import { avaliacoesParaExibir } from '../_comum/avaliacoes';
+import { Mapa } from '../_comum/Mapa';
 import { Foto } from '../_comum/Foto';
 import { Estrelas } from '../_comum/Estrelas';
 import { Faq } from '../_comum/Faq';
@@ -19,8 +22,9 @@ const NUDE = '#fbf6f2';
 const TINTA = '#3b2a30';
 const serif = { fontFamily: "'Cormorant Garamond', 'Times New Roman', Georgia, serif" } as CSSProperties;
 
-export default function TemplateBeleza({ conteudo: c, fotos, atribuicoes, previa, aoContatar }: PropsTemplate) {
+export default function TemplateBeleza({ conteudo: c, fotos, atribuicoes, avaliacoes = [], previa, aoContatar }: PropsTemplate) {
   useFontes(FONTE);
+  const listaAvaliacoes = avaliacoesParaExibir(c.depoimentos, avaliacoes);
   const cor = corValida(c.tema.cor_primaria, '#9f4a67');
   const sobreCor = textoSobre(cor);
   const rosado = misturar(cor, NUDE, 0.86);
@@ -121,23 +125,18 @@ export default function TemplateBeleza({ conteudo: c, fotos, atribuicoes, previa
         </div>
       </section>
 
-      {/* Depoimentos */}
-      {c.depoimentos.length > 0 && (
-        <section id={idSecao.avaliacoes} className="mx-auto max-w-4xl scroll-mt-24 px-5 py-24 text-center">
-          <Titulo sobre="Avaliações no Google" titulo="Palavras de quem confia" />
-          <div className="mt-14 space-y-14">
-            {c.depoimentos.map((d, i) => (
-              <figure key={i}>
-                <blockquote className="text-[1.75rem] font-[500] italic leading-snug sm:text-[2rem]" style={serif}>“{d.texto}”</blockquote>
-                <figcaption className="mt-5 flex flex-col items-center gap-2 text-xs font-[500] uppercase tracking-[.2em] text-[rgba(59,42,48,.8)]">
-                  <Estrelas nota={d.nota} cor={corTexto} className="h-3.5 w-3.5" />
-                  {d.autor}
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Avaliações reais do Google */}
+      <AvaliacoesGoogle
+        conteudo={c}
+        avaliacoes={listaAvaliacoes}
+        id={idSecao.avaliacoes}
+        sobre="Avaliações no Google"
+        titulo="Palavras de quem confia"
+        escuro={false}
+        cor={corTexto}
+        raio={'rounded-[1.75rem]'}
+        estiloTitulo={serif} classeTitulo="font-[500]"
+      />
 
       {/* Contato */}
       <section id={idSecao.contato} className="scroll-mt-24 bg-[var(--tinta)] text-[var(--nude)]">
@@ -176,6 +175,12 @@ export default function TemplateBeleza({ conteudo: c, fotos, atribuicoes, previa
           )}
         </div>
       </section>
+
+      {c.empresa.endereco && (
+        <div className="mx-auto max-w-6xl px-5 pt-16">
+          <Mapa endereco={c.empresa.endereco} nome={c.empresa.nome} className="h-72 rounded-2xl ring-1 ring-black/5 sm:h-80" />
+        </div>
+      )}
 
       {/* FAQ */}
       {c.faq.length > 0 && (

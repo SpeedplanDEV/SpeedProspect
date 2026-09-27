@@ -1,10 +1,14 @@
 // Template SERVIÇOS — encanadores, eletricistas, chaveiros, reformas, assistências. Identidade: confiável e ágil.
 import type { CSSProperties, ReactNode } from 'react';
-import { BadgeCheck, CheckCircle2, Clock, MapPin, MessageSquareText, Navigation, Phone, ShieldCheck, Star, Wrench } from 'lucide-react';
+import { BadgeCheck, CheckCircle2, Clock, MapPin, MessageSquareText, Navigation, Phone, ShieldCheck, Wrench } from 'lucide-react';
 import type { PropsTemplate } from '../types';
 import { comContraste, corValida, misturar, textoSobre } from '../_comum/cores';
 import { colunasServicos, contatoEmpresa, diaDeHoje, enderecoCurto, idSecao, iniciais, linkTelefone, notaBR, numeroBR } from '../_comum/util';
 import { useFontes } from '../_comum/useFontes';
+import { AvaliacoesGoogle } from '../_comum/AvaliacoesGoogle';
+import { avaliacoesParaExibir } from '../_comum/avaliacoes';
+import { Mapa } from '../_comum/Mapa';
+import { Galeria } from '../_comum/Galeria';
 import { Foto } from '../_comum/Foto';
 import { Estrelas } from '../_comum/Estrelas';
 import { Faq } from '../_comum/Faq';
@@ -15,8 +19,9 @@ import { LinkContato } from '../_comum/Botao';
 const FONTE = 'https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap';
 const TINTA = '#0b1b33';
 
-export default function TemplateServicos({ conteudo: c, fotos, atribuicoes, previa, aoContatar }: PropsTemplate) {
+export default function TemplateServicos({ conteudo: c, fotos, atribuicoes, avaliacoes = [], previa, aoContatar }: PropsTemplate) {
   useFontes(FONTE);
+  const listaAvaliacoes = avaliacoesParaExibir(c.depoimentos, avaliacoes);
   const cor = corValida(c.tema.cor_primaria, '#1d4ed8');
   const corTexto = comContraste(cor, '#ffffff', 4.5);
   const sobreCor = textoSobre(cor);
@@ -114,6 +119,8 @@ export default function TemplateServicos({ conteudo: c, fotos, atribuicoes, prev
         </div>
       </section>
 
+      <Galeria fotos={fotos} nome={c.empresa.nome} cor={misturar(cor, '#ffffff', 0.3)} escuro={false} />
+
       {/* Como funciona */}
       <section className="bg-slate-50">
         <div className="mx-auto max-w-6xl px-5 py-20">
@@ -150,29 +157,18 @@ export default function TemplateServicos({ conteudo: c, fotos, atribuicoes, prev
         <Foto src={fotos[1] ?? fotoHero} alt={`Trabalho de ${c.empresa.nome}`} cor={misturar(cor, '#ffffff', 0.3)} className="aspect-[4/3.4] w-full rounded-2xl" />
       </section>
 
-      {/* Depoimentos */}
-      {c.depoimentos.length > 0 && (
-        <section id={idSecao.avaliacoes} className="scroll-mt-24 bg-[var(--suave)]">
-          <div className="mx-auto max-w-6xl px-5 py-20">
-            <Titulo sobre="Avaliações reais no Google" titulo="Clientes que recomendam" />
-            <div className={`mt-12 grid gap-5 ${c.depoimentos.length > 2 ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
-              {c.depoimentos.map((d, i) => (
-                <figure key={i} className="flex flex-col rounded-2xl bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,.06)]">
-                  <div className="flex items-center justify-between">
-                    <Estrelas nota={d.nota} />
-                    <Star className="h-5 w-5 text-slate-200" aria-hidden />
-                  </div>
-                  <blockquote className="mt-4 flex-1 leading-relaxed text-slate-700">“{d.texto}”</blockquote>
-                  <figcaption className="mt-6 text-sm">
-                    <span className="font-[800] text-[var(--tinta)]">{d.autor}</span>
-                    <span className="text-slate-500">{d.data ? ` · ${d.data}` : ''}</span>
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+      {/* Avaliações reais do Google */}
+      <AvaliacoesGoogle
+        conteudo={c}
+        avaliacoes={listaAvaliacoes}
+        id={idSecao.avaliacoes}
+        sobre="Avaliações reais no Google"
+        titulo="Clientes que recomendam"
+        escuro={false}
+        cor={corTexto}
+        raio={'rounded-2xl'}
+        classeTitulo="font-[800] tracking-tight"
+      />
 
       {/* Contato */}
       <section id={idSecao.contato} className="mx-auto grid max-w-6xl scroll-mt-24 gap-8 px-5 py-20 md:grid-cols-2">
@@ -209,6 +205,12 @@ export default function TemplateServicos({ conteudo: c, fotos, atribuicoes, prev
           </div>
         )}
       </section>
+
+      {c.empresa.endereco && (
+        <div className="mx-auto max-w-6xl px-5 pt-16">
+          <Mapa endereco={c.empresa.endereco} nome={c.empresa.nome} className="h-72 rounded-2xl ring-1 ring-black/5 sm:h-80" />
+        </div>
+      )}
 
       {/* FAQ */}
       {c.faq.length > 0 && (

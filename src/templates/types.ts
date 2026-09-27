@@ -18,6 +18,15 @@ export interface PropsTemplate {
   /** Autores das fotos, exibidos no rodapé (exigência do Google) */
   atribuicoes: string[];
   previa: InfoPrevia;
+  /** Avaliações positivas reais do Google (nota >= 4), direto dos dados coletados */
+  avaliacoes?: AvaliacaoPublica[];
   /** Chamado quando o visitante clica para falar com a empresa */
   aoContatar?: () => void;
+}
+
+export interface AvaliacaoPublica {
+  autor: string;
+  nota: number;
+  texto: string;
+  data: string;
 }

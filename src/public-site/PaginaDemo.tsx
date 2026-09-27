@@ -1,7 +1,8 @@
 import { Suspense, useEffect, useState, type CSSProperties, type MouseEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { TEMPLATES, templateDoNicho } from '@/templates/registry';
-import { DEMOS } from '@/templates/demo';
+import { DEMOS, DEMO_AVALIACOES } from '@/templates/demo';
+import { ContextoNicho } from '@/templates/_comum/contexto';
 import type { NichoLP } from '@/templates/types';
 import { aplicarSeo } from './api';
 import { ALTURA_BARRA, BarraPrevia } from './BarraPrevia';
@@ -38,8 +39,10 @@ export default function PaginaDemo() {
           </Link>
         ))}
       </nav>
+      <ContextoNicho.Provider value={chave}>
       <Suspense fallback={<div className="min-h-screen bg-white" />}>
         <Template
+          avaliacoes={DEMO_AVALIACOES}
           key={chave}
           conteudo={conteudo}
           fotos={[]}
@@ -47,6 +50,7 @@ export default function PaginaDemo() {
           previa={{ negocioNome: 'SpeedProspect', negocioWhatsapp: '', slug: 'demo', token: null, tokenOptout: null, demo: true }}
         />
       </Suspense>
+      </ContextoNicho.Provider>
       {aviso && (
         <div className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-sm text-white shadow-lg" style={{ fontFamily: 'system-ui, sans-serif' }}>
           Demonstração: na prévia real, este botão abre o contato da empresa.

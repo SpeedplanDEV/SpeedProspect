@@ -2,6 +2,8 @@ import { Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } fr
 import { useParams, useSearchParams } from 'react-router-dom';
 import { urlFoto } from '@/lib/config';
 import { templateDoNicho } from '@/templates/registry';
+import { ContextoNicho } from '@/templates/_comum/contexto';
+import { ehNichoLP } from '@shared/conteudo';
 import { aplicarSeo, buscarSite, idSessao, rastrear, type SitePublico } from './api';
 import { ALTURA_BARRA, BarraPrevia } from './BarraPrevia';
 
@@ -60,8 +62,10 @@ export default function PaginaPrevia() {
           Rascunho (versão {s.versao}) — visível só com o link do operador até ser aprovado.
         </div>
       )}
+      <ContextoNicho.Provider value={ehNichoLP(s.template) ? s.template : 'servicos'}>
       <Suspense fallback={<Carregando />}>
         <Template
+          avaliacoes={s.avaliacoes ?? []}
           conteudo={s.conteudo}
           fotos={s.fotos.map((f) => urlFoto(f.name, 1200))}
           atribuicoes={s.fotos.map((f) => f.atribuicao ?? '')}
@@ -75,6 +79,7 @@ export default function PaginaPrevia() {
           aoContatar={() => registrar('clique_whatsapp')}
         />
       </Suspense>
+      </ContextoNicho.Provider>
     </div>
   );
 }

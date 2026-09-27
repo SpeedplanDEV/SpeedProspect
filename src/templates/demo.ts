@@ -154,3 +154,10 @@ export const DEMOS: Record<NichoLP, ConteudoLP> = {
     seo: { title: 'Elétrica Exemplo | Eletricista no Centro', description: 'Modelo de demonstração.' },
   },
 };
+
+/** Avaliações fictícias da demonstração (na prévia real vêm do Google) */
+export const DEMO_AVALIACOES = [
+  { autor: 'Cliente D.', nota: 5, texto: 'Fui muito bem recebida desde a primeira vez. Equipe atenciosa, ambiente agradável e tudo muito bem explicado. Recomendo de olhos fechados para quem procura um atendimento de confiança perto de casa.', data: 'há 2 semanas' },
+  { autor: 'Cliente E.', nota: 5, texto: 'Pontualidade e cuidado em cada detalhe. Voltarei sempre.', data: 'há 1 mês' },
+  { autor: 'Cliente F.', nota: 4, texto: 'Ótimo atendimento pelo WhatsApp, marcaram rapidinho.', data: 'há 3 meses' },
+];
