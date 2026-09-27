@@ -173,3 +173,27 @@ nunca aparecem. O menu lateral mostra quantas prévias aguardam aprovação e qu
 Configurações → **Logo da agência**: a imagem é reduzida no navegador e fica em `configuracoes.negocio_logo`
 (data URL, até ~400 KB). Aparece na barra do topo de todas as prévias; sem logo, aparecem as iniciais do nome.
 Requer `supabase/migrations/20260930000000_logo_agencia.sql`.
+
+## Fase 6 — Follow-ups, funil e dashboard
+
+Tudo em funções SQL (migration `20261001000000_fase6_funil.sql`) — sem Edge Function nova para publicar.
+
+| Função | O que faz |
+|---|---|
+| `agendar_followups()` | só agenda (nunca envia): follow-up 1 dois dias após o primeiro contato (texto diferente se o lead abriu), follow-up 2 três dias após o follow-up 1, lead `perdido` (`sem_resposta`) cinco dias após o follow-up 2, prévia despublicada 30 dias depois; pula follow-ups pendentes de quem avançou no funil. Idempotente; registra em Execuções quando cria algo |
+| `mover_lead(lead, status, valor)` | muda a etapa no kanban (e o valor fechado) |
+| `painel_dashboard(mes)` | números do mês, série de 30 dias, leads quentes e erros |
+
+- **Histórico de status** (`historico_status`, preenchido por trigger): base do funil do dashboard — cada lead conta
+  no mês em que alcançou a etapa pela primeira vez. Leads anteriores entram com o status atual.
+- **Envios** roda `agendar_followups()` ao abrir a tela (a Fase 7 agenda também pelo cron às 08:00) e tem o botão
+  **Verificar follow-ups agora** na aba Follow-ups.
+- **Funil (`/funil`)**: kanban Enviado → Abriu → Respondeu → Negociando → Fechado (+ Perdido recolhido); arrastar ou
+  botão ⇄ para mover; ao fechar, pede o valor (`leads.valor_fechado`); card com score, último evento, dias sem
+  contato e botão do WhatsApp.
+- **Dashboard (`/`)**: cards do mês (coletados, qualificados, prévias, enviados, abriram, responderam, fechados,
+  receita, custo estimado, custo por fechamento), funil com conversão entre etapas, gráfico envios × aberturas
+  (30 dias, com tabela), leads quentes (abriram nas últimas 48 h) e últimas execuções com erro. Seletor de mês.
+
+### Setup da Fase 6
+Rode `supabase/migrations/20261001000000_fase6_funil.sql` no SQL Editor.

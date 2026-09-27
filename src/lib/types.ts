@@ -137,6 +137,8 @@ export interface Lead {
   status_funil: StatusFunil;
   motivo_descarte: string | null;
   observacoes: string | null;
+  valor_fechado?: number | null;
+  perdido_em?: string | null;
   places_atualizado_em: string;
   coletado_em: string;
   atualizado_em: string;

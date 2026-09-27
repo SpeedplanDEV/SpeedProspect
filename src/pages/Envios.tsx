@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Copy, ExternalLink, Loader2, MessageCircle, SkipForward, Star, X } from 'lucide-react';
+import { CalendarClock, Copy, ExternalLink, Loader2, MessageCircle, SkipForward, Star, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { linkWhatsApp, pularMensagem, registrarEnvio, resumoEnvios } from '@/lib/fila';
+import { agendarFollowups, linkWhatsApp, type ResumoFollowups, pularMensagem, registrarEnvio, resumoEnvios } from '@/lib/fila';
 import { formatarData, formatarNumero, formatarTelefone, paraE164 } from '@/lib/format';
 import { rotuloNicho, type Mensagem } from '@/lib/types';
 import { Badge, Erro, Pagina, Vazio } from '@/components/ui/Pagina';
@@ -41,7 +41,28 @@ export default function Envios() {
   const [aba, setAba] = useState<'primeiro' | 'followups'>('primeiro');
   const [linkPendente, setLinkPendente] = useState<{ nome: string; url: string } | null>(null);
 
+  const qc = useQueryClient();
+  const toast = useToast();
   const resumo = useQuery({ queryKey: ['envios', 'resumo'], queryFn: resumoEnvios, refetchInterval: 60_000 });
+
+  // Agenda os follow-ups do dia ao abrir a tela (a função é idempotente; na Fase 7 roda também pelo cron)
+  // Variável da mutação: true = clique do operador (avisa mesmo sem novidades)
+  const agendar = useMutation<ResumoFollowups, Error, boolean>({
+    mutationFn: () => agendarFollowups(),
+    onSuccess: (r, manual) => {
+      const novos = r.followup_1 + r.followup_2;
+      if (novos) toast(`${novos} follow-up(s) agendado(s) para hoje`);
+      else if (manual) toast('Nenhum follow-up novo para hoje');
+      if (r.perdidos) toast(`${r.perdidos} lead(s) sem resposta movido(s) para Perdido`);
+      if (novos || r.perdidos || r.pulados) {
+        qc.invalidateQueries({ queryKey: ['envios'] });
+        qc.invalidateQueries({ queryKey: ['contadores'] });
+      }
+    },
+    onError: (e: Error, manual) => manual && toast(e.message, 'erro'),
+  });
+  const { mutate: agendarMutate } = agendar;
+  useEffect(() => agendarMutate(false), [agendarMutate]);
 
   const fila = useQuery({
     queryKey: ['envios', 'fila'],
@@ -122,6 +143,14 @@ export default function Envios() {
         ))}
       </div>
 
+      {aba === 'followups' && (
+        <div className="mb-3 flex justify-end">
+          <button className="btn-secundario" onClick={() => agendar.mutate(true)} disabled={agendar.isPending}>
+            {agendar.isPending ? <Loader2 size={15} className="animate-spin" /> : <CalendarClock size={15} />} Verificar follow-ups agora
+          </button>
+        </div>
+      )}
+
       {fila.error ? (
         <Erro erro={fila.error} />
       ) : fila.isLoading ? (
@@ -132,7 +161,10 @@ export default function Envios() {
             {aba === 'primeiro' ? (
               <>Nenhuma mensagem de primeiro contato na fila. <Link to="/aprovacao" className="text-marca hover:underline">Aprove prévias</Link> para preencher.</>
             ) : (
-              'Nenhum follow-up para hoje.'
+              <>
+                Nenhum follow-up para hoje. Eles são criados 2 dias após o primeiro contato (follow-up 1) e 3 dias após o
+                follow-up 1 (follow-up 2).
+              </>
             )}
           </Vazio>
         </div>

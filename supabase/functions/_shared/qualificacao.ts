@@ -219,5 +219,6 @@ export const ROTULO_DESCARTE: Record<string, string> = {
   dados_incorretos: 'Dados incorretos',
   sem_whatsapp: 'Sem telefone / WhatsApp',
   ja_cliente: 'Já é cliente',
+  sem_resposta: 'Sem resposta aos follow-ups',
   manual: 'Descartado manualmente',
 };

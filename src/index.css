@@ -7,6 +7,10 @@
   --texto: 15 23 42;
   --suave: 71 85 105;
   --fraco: 148 163 184;
+  /* Séries dos gráficos (paleta validada para daltonismo em cada tema) */
+  --serie-1: #2a78d6;
+  --serie-2: #eb6834;
+  --serie-funil: #2a78d6;
   color-scheme: light;
 }
 :root[data-tema='dark'] {
@@ -17,6 +21,9 @@
   --texto: 241 245 249;
   --suave: 203 213 225;
   --fraco: 148 163 184;
+  --serie-1: #3987e5;
+  --serie-2: #d95926;
+  --serie-funil: #3987e5;
   color-scheme: dark;
 }
 :root[data-tema='night'] {
@@ -27,6 +34,9 @@
   --texto: 228 228 231;
   --suave: 161 161 170;
   --fraco: 113 113 122;
+  --serie-1: #3987e5;
+  --serie-2: #d95926;
+  --serie-funil: #3987e5;
   color-scheme: dark;
 }
 

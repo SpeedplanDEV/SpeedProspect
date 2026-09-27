@@ -4,16 +4,20 @@ import { supabase } from './supabase';
 import type { Configuracoes, Lead, Site } from './types';
 
 /** Traduz erros das funções SQL para mensagens claras */
-function traduzirErro(msg: string): string {
+const FUNCOES_FASE6 = ['agendar_followups', 'mover_lead', 'painel_dashboard'];
+
+function traduzirErro(msg: string, nome: string): string {
   if (/could not find the function|schema cache/i.test(msg)) {
-    return 'As funções da Fase 5 ainda não existem no banco. Rode o SQL 20260929000000_fase5_envios.sql no Supabase.';
+    return FUNCOES_FASE6.includes(nome)
+      ? 'As funções da Fase 6 ainda não existem no banco. Rode o SQL 20261001000000_fase6_funil.sql no Supabase.'
+      : 'As funções da Fase 5 ainda não existem no banco. Rode o SQL 20260929000000_fase5_envios.sql no Supabase.';
   }
   return msg.replace(/^LIMITE_ENVIOS:\s*/, '').replace(/^Limite/, 'Limite');
 }
 
 async function rpc<T>(nome: string, args: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.rpc(nome, args);
-  if (error) throw new Error(traduzirErro(error.message));
+  if (error) throw new Error(traduzirErro(error.message, nome));
   return data as T;
 }
 
@@ -71,3 +75,29 @@ export const MOTIVOS_DESCARTE = [
   { valor: 'ja_cliente', rotulo: 'Já é cliente' },
   { valor: 'manual', rotulo: 'Outro' },
 ] as const;
+
+// ---- Fase 6: follow-ups, funil e dashboard ----
+
+export interface ResumoFollowups { followup_1: number; followup_2: number; perdidos: number; despublicados: number; pulados: number }
+
+/** Agenda follow-ups do dia (idempotente — pode rodar a cada abertura da tela de Envios) */
+export const agendarFollowups = () => rpc<ResumoFollowups>('agendar_followups', {});
+
+export const moverLead = (leadId: string, status: string, valor?: number | null) =>
+  rpc('mover_lead', { p_lead_id: leadId, p_status: status, p_valor: valor ?? null });
+
+export interface PontoSerie { dia: string; envios: number; aberturas: number }
+export interface LeadQuente { id: string; nome: string; telefone: string | null; score: number; nicho: string; ultima_visita: string; visitas: number }
+export interface Painel {
+  mes: string;
+  coletados: number;
+  /** Leads que alcançaram cada etapa no mês (1 qualificado … 8 fechado) */
+  etapas: Record<string, number>;
+  receita: number;
+  custo: number;
+  serie: PontoSerie[];
+  quentes: LeadQuente[];
+  erros: { id: string; etapa: string; iniciado_em: string; erro: string | null }[];
+}
+
+export const painelDashboard = (mes?: string) => rpc<Painel>('painel_dashboard', mes ? { p_mes: mes } : {});
