@@ -20,7 +20,9 @@ export function PreviaFrame({ src, altura = 620, recarregar = 0 }: { src: string
     return () => ro.disconnect();
   }, []);
 
-  useEffect(() => setCarregando(true), [src, recarregar, giro]);
+  useEffect(() => {
+    setCarregando(true);
+  }, [src, recarregar, giro]);
 
   const escala = modo === 'desktop' ? Math.min(1, largura / LARGURA_DESKTOP) : 1;
   const larguraFrame = modo === 'desktop' ? LARGURA_DESKTOP : Math.min(LARGURA_CELULAR, largura);

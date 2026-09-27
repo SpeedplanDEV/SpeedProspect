@@ -17,7 +17,9 @@ export default function PaginaDemo() {
   const Template = templateDoNicho(chave);
   const [aviso, setAviso] = useState(false);
 
-  useEffect(() => aplicarSeo(`Modelo ${ROTULOS[chave]} · demonstração`, 'Modelo de demonstração'), [chave]);
+  useEffect(() => {
+    aplicarSeo(`Modelo ${ROTULOS[chave]} · demonstração`, 'Modelo de demonstração');
+  }, [chave]);
 
   // Na demonstração os botões de contato não abrem nada (os dados são fictícios)
   const interceptar = (e: MouseEvent) => {

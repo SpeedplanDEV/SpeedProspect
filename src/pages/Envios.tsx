@@ -62,7 +62,9 @@ export default function Envios() {
     onError: (e: Error, manual) => manual && toast(e.message, 'erro'),
   });
   const { mutate: agendarMutate } = agendar;
-  useEffect(() => agendarMutate(false), [agendarMutate]);
+  useEffect(() => {
+    agendarMutate(false);
+  }, [agendarMutate]);
 
   const fila = useQuery({
     queryKey: ['envios', 'fila'],

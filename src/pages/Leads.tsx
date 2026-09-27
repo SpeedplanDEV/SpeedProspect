@@ -68,7 +68,9 @@ export default function Leads() {
     const t = setTimeout(() => setBuscaAtiva(busca.trim()), 300);
     return () => clearTimeout(t);
   }, [busca]);
-  useEffect(() => setPagina(0), [buscaAtiva, funil, campanha, nicho, site, ordem]);
+  useEffect(() => {
+    setPagina(0);
+  }, [buscaAtiva, funil, campanha, nicho, site, ordem]);
 
   const campanhas = useQuery({
     queryKey: ['campanhas'],

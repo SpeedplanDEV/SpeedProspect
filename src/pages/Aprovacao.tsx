@@ -168,7 +168,9 @@ function Kbd({ children }: { children: React.ReactNode }) {
 
 function ListaFila({ leads, idAtual, aoSelecionar }: { leads: LeadComSite[]; idAtual: string | null; aoSelecionar: (id: string) => void }) {
   const ativo = useRef<HTMLButtonElement>(null);
-  useEffect(() => ativo.current?.scrollIntoView({ block: 'nearest' }), [idAtual]);
+  useEffect(() => {
+    ativo.current?.scrollIntoView({ block: 'nearest' });
+  }, [idAtual]);
   return (
     <div className="card max-h-[calc(100vh-150px)] overflow-y-auto p-1.5 lg:sticky lg:top-4">
       {leads.map((l, i) => (
