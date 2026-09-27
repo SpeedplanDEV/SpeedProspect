@@ -1,21 +1,44 @@
 import { NavLink, Outlet } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   Activity, CheckSquare, Columns3, LayoutDashboard, LayoutTemplate, LogOut, Megaphone, Moon, Send, Settings, Sun,
   SunMoon, Users, Zap,
 } from 'lucide-react';
 import { useAuth } from './auth';
 import { useTema } from './tema';
+import { supabase } from '@/lib/supabase';
 
 const ITENS = [
   { para: '/', rotulo: 'Dashboard', icone: LayoutDashboard, fim: true },
   { para: '/campanhas', rotulo: 'Campanhas', icone: Megaphone },
   { para: '/leads', rotulo: 'Leads', icone: Users },
-  { para: '/aprovacao', rotulo: 'Aprovação', icone: CheckSquare },
-  { para: '/envios', rotulo: 'Envios', icone: Send },
+  { para: '/aprovacao', rotulo: 'Aprovação', icone: CheckSquare, contador: 'aprovacao' },
+  { para: '/envios', rotulo: 'Envios', icone: Send, contador: 'envios' },
   { para: '/funil', rotulo: 'Funil', icone: Columns3 },
   { para: '/execucoes', rotulo: 'Execuções', icone: Activity },
   { para: '/configuracoes', rotulo: 'Configurações', icone: Settings },
 ];
+
+/** Pendências mostradas no menu: prévias para aprovar e mensagens na fila de hoje */
+function useContadores() {
+  return useQuery({
+    queryKey: ['contadores'],
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+      const [aprovacao, envios] = await Promise.all([
+        supabase.from('leads').select('id', { count: 'exact', head: true }).eq('status_funil', 'previa_gerada'),
+        supabase
+          .from('mensagens')
+          .select('id, lead:leads!inner(id)', { count: 'exact', head: true })
+          .eq('status', 'pendente')
+          .lte('agendada_para', hoje)
+          .not('lead.status_funil', 'in', '(nao_contatar,descartado,perdido)'),
+      ]);
+      return { aprovacao: aprovacao.count ?? 0, envios: envios.count ?? 0 } as Record<string, number>;
+    },
+  });
+}
 
 const ROTULO_TEMA = { light: 'Claro', dark: 'Escuro', night: 'Noite' } as const;
 const ICONE_TEMA = { light: Sun, dark: Moon, night: SunMoon } as const;
@@ -24,6 +47,7 @@ export default function Layout() {
   const { sessao, sair } = useAuth();
   const { tema, alternar } = useTema();
   const IconeTema = ICONE_TEMA[tema];
+  const { data: contadores } = useContadores();
 
   return (
     <div className="min-h-screen">
@@ -35,7 +59,7 @@ export default function Layout() {
           <span className="text-[15px] font-medium">SpeedProspect</span>
         </div>
         <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
-          {ITENS.map(({ para, rotulo, icone: Icone, fim }) => (
+          {ITENS.map(({ para, rotulo, icone: Icone, fim, contador }) => (
             <NavLink
               key={para}
               to={para}
@@ -48,6 +72,11 @@ export default function Layout() {
             >
               <Icone size={16} />
               {rotulo}
+              {contador && !!contadores?.[contador] && (
+                <span className="ml-auto rounded-full bg-marca px-1.5 py-px text-[11px] font-medium tabular-nums text-white">
+                  {contadores[contador]}
+                </span>
+              )}
             </NavLink>
           ))}
           <a href="/demo/saude" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-suave transition-colors hover:bg-elevado hover:text-texto">

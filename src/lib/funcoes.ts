@@ -58,7 +58,7 @@ export interface ResumoGeracao {
   restantes: number | null;
   limite_atingido: boolean;
   custo_brl?: number;
-  resultados: { lead_id: string; nome: string; ok: boolean; erro?: string; slug?: string }[];
+  resultados: { lead_id: string; nome: string; ok: boolean; erro?: string; slug?: string; versao?: number }[];
 }
 
 export function textoResumoGeracao(r: ResumoGeracao): string {

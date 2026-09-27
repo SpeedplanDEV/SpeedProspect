@@ -136,3 +136,35 @@ Lighthouse mobile nos modelos: desempenho 99, acessibilidade 100, boas práticas
    Secrets: `ANTHROPIC_API_KEY`.
 3. Publique `gerar-previa`, `track` e `optout` (GitHub Actions ou editor: `supabase/editor/*.ts`).
 4. Em Configurações do painel: **URL pública do app** (ex.: `https://speed-prospect-silk.vercel.app`), WhatsApp e nome do negócio.
+5. Rode `supabase/migrations/20260928000000_previa_avaliacoes.sql` (avaliações positivas reais na prévia).
+6. Fotos: o site busca as fotos por `/api/foto` (função da Vercel em `api/foto.ts`), que chama a Edge Function
+   `foto` com a chave pública. Assim as fotos funcionam mesmo com "Verify JWT" ligado na função `foto`.
+
+## Fase 5 — Aprovação e fila de envio
+
+As ações do operador são funções SQL atômicas (migration `20260929000000_fase5_envios.sql`), chamadas pelo painel
+com o usuário logado — não há Edge Function nova para publicar.
+
+| Função | O que faz |
+|---|---|
+| `aprovar_previa(lead, texto)` | publica o site, cria/atualiza a mensagem `primeiro_contato` (fila de hoje) e marca o lead `aprovado` |
+| `descartar_lead(lead, motivo)` | lead `descartado` com motivo, prévia despublicada, mensagens pendentes puladas |
+| `registrar_envio(mensagem, texto)` | salva o texto final, marca `enviada`, lead `aprovado` → `enviado`, grava evento; recusa ao atingir `limite_envios_dia` (com trava contra cliques simultâneos) |
+| `pular_mensagem(mensagem, motivo)` | marca `pulada` com motivo opcional |
+| `resumo_envios()` | enviados hoje / limite (dia no fuso de São Paulo) |
+
+### Aprovação (`/aprovacao`)
+Fila de leads `previa_gerada` por score. Prévia ao vivo (celular / computador), ajustes rápidos (título, subtítulo,
+tagline, serviços, cor principal — salvos em `sites.conteudo`), mensagem de primeiro contato editável, **Aprovar**,
+**Regenerar** (com instrução extra para a IA, nova versão) e **Descartar** (com motivo).
+Atalhos: `A` aprovar, `R` regenerar, `D` descartar, `←`/`→` navegar, `Esc` fecha o painel.
+
+### Envios (`/envios`)
+Abas **Primeiro contato** e **Follow-ups de hoje**, contador `enviados hoje / limite`. Cada item: telefone formatado,
+aviso de telefone fixo, texto editável (salvo ao sair do campo), **Abrir WhatsApp** (abre `wa.me` numa nova aba e
+registra o envio — quem envia é o operador), **Copiar** e **Pular**. Leads `nao_contatar`, `descartado` e `perdido`
+nunca aparecem. O menu lateral mostra quantas prévias aguardam aprovação e quantas mensagens estão na fila.
+
+### Setup da Fase 5
+1. Rode `supabase/migrations/20260929000000_fase5_envios.sql` no SQL Editor.
+2. Confira em Configurações: **URL pública do app**, **nome do negócio** (assinatura das mensagens) e **envios / dia**.

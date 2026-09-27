@@ -149,11 +149,13 @@ export interface Evento {
 }
 export interface Mensagem {
   id: string;
+  lead_id: string;
   tipo: string;
   texto: string;
   status: string;
   agendada_para: string;
   enviada_em: string | null;
+  motivo_pulo?: string | null;
   criado_em: string;
 }
 

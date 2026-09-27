@@ -138,7 +138,7 @@ export function PreviaLead({ lead }: { lead: Lead }) {
         <div><dt className="text-suave">Custo</dt><dd className="tabular-nums">{formatarMoeda(site.custo_estimado ?? 0, 4)}</dd></div>
       </dl>
       {!site.publicado && (
-        <p className="mt-3 text-xs text-fraco">O link do cliente só funciona depois que a prévia for aprovada (publicada). A aprovação chega na Fase 5.</p>
+        <p className="mt-3 text-xs text-fraco">O link do cliente só funciona depois que a prévia for aprovada (publicada). Aprove em <a href="/aprovacao" className="text-marca hover:underline">Aprovação</a>.</p>
       )}
     </div>
   );

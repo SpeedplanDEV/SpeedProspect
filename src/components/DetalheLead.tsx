@@ -18,6 +18,7 @@ const ROTULO_EVENTO: Record<string, string> = {
   clique_whatsapp: 'Clicou no WhatsApp',
   clique_quero: 'Clicou em “Quero esse site”',
   optout: 'Pediu para não receber propostas',
+  mensagem_enviada: 'WhatsApp aberto para envio',
 };
 
 function Secao({ titulo, children }: { titulo: string; children: ReactNode }) {
@@ -294,7 +295,7 @@ export function DetalheLead({ leadId, aoFechar, nomeCampanha }: {
                 {data.mensagens.map((m) => (
                   <li key={m.id} className="flex gap-2">
                     <span className="shrink-0 tabular-nums text-fraco">{formatarDataHora(m.enviada_em ?? m.criado_em)}</span>
-                    <span>Mensagem {m.tipo.replace('_', ' ')} · {m.status}</span>
+                    <span>Mensagem {m.tipo.replace('_', ' ')} · {m.status}{m.motivo_pulo ? ` (${m.motivo_pulo})` : ''}</span>
                   </li>
                 ))}
                 {data.eventos.map((e) => (

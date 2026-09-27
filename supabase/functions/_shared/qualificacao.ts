@@ -214,5 +214,10 @@ export const ROTULO_DESCARTE: Record<string, string> = {
   franquia_rede: 'Franquia / rede nacional',
   ja_tem_site: 'Já tem site bom',
   score_baixo: 'Score abaixo do mínimo',
+  fora_do_perfil: 'Fora do perfil',
+  previa_ruim: 'Prévia não ficou boa',
+  dados_incorretos: 'Dados incorretos',
+  sem_whatsapp: 'Sem telefone / WhatsApp',
+  ja_cliente: 'Já é cliente',
   manual: 'Descartado manualmente',
 };
