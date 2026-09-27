@@ -11,22 +11,14 @@ export const FUNCOES_URL = `${SUPABASE_URL}/functions/v1`;
 export const urlFoto = (name: string, w = 800) => `${FUNCOES_URL}/foto?name=${encodeURIComponent(name)}&w=${w}`;
 
 /**
- * Nomes alternativos das Edge Functions (quando publicadas pelo editor do Supabase com o nome sugerido).
- * O sistema tenta primeiro o nome oficial e, se não existir (404), o alternativo.
+ * Endereço real de cada Edge Function no Supabase. Funções criadas pelo editor do painel ficam com o
+ * endereço sugerido por ele (não dá para renomear depois), então o sistema chama esses endereços diretamente.
  */
-export const ALIAS_FUNCOES: Record<string, string> = {
+export const ENDERECO_FUNCOES: Record<string, string> = {
   'gerar-previa': 'quick-handler',
   track: 'smart-responder',
   optout: 'super-endpoint',
 };
+export const enderecoFuncao = (nome: string) => ENDERECO_FUNCOES[nome] ?? nome;
 
-/** fetch para uma Edge Function com fallback para o nome alternativo */
-export async function fetchFuncao(nome: string, init: RequestInit): Promise<Response> {
-  const r = await fetch(`${FUNCOES_URL}/${nome}`, init);
-  const alias = ALIAS_FUNCOES[nome];
-  if (r.status === 404 && alias) {
-    const corpo = await r.clone().json().catch(() => null);
-    if (corpo?.code === 'NOT_FOUND') return fetch(`${FUNCOES_URL}/${alias}`, init);
-  }
-  return r;
-}
+export const fetchFuncao = (nome: string, init: RequestInit) => fetch(`${FUNCOES_URL}/${enderecoFuncao(nome)}`, init);
