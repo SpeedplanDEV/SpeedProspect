@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { Suspense } from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Activity, CheckSquare, Columns3, LayoutDashboard, LayoutTemplate, LogOut, Megaphone, Moon, Send, Settings, Sun,
@@ -7,6 +8,7 @@ import {
 import { useAuth } from './auth';
 import { useTema } from './tema';
 import { supabase } from '@/lib/supabase';
+import { ErroTela } from '@/components/ErroTela';
 
 const ITENS = [
   { para: '/', rotulo: 'Dashboard', icone: LayoutDashboard, fim: true },
@@ -48,6 +50,7 @@ export default function Layout() {
   const { tema, alternar } = useTema();
   const IconeTema = ICONE_TEMA[tema];
   const { data: contadores } = useContadores();
+  const { pathname } = useLocation();
 
   return (
     <div className="min-h-screen">
@@ -97,7 +100,11 @@ export default function Layout() {
         </div>
       </aside>
       <main className="ml-56 min-h-screen">
-        <Outlet />
+        <ErroTela chave={pathname}>
+          <Suspense fallback={<div className="p-6 text-sm text-suave">Carregando…</div>}>
+            <Outlet />
+          </Suspense>
+        </ErroTela>
       </main>
     </div>
   );

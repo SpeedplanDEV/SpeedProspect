@@ -42,7 +42,7 @@ function aplicarEdicao(c: ConteudoLP, e: Edicao): ConteudoLP {
     hero: { ...c.hero, titulo: e.titulo.trim(), subtitulo: e.subtitulo.trim() },
     empresa: { ...c.empresa, tagline: e.tagline.trim() },
     tema: { ...c.tema, cor_primaria: e.cor },
-    servicos: e.servicos.map((s, i) => ({ ...c.servicos[i], titulo: s.titulo.trim(), descricao: s.descricao.trim() })),
+    servicos: e.servicos.map((s, i) => ({ ...(c.servicos ?? [])[i], titulo: s.titulo.trim(), descricao: s.descricao.trim() })),
   };
 }
 
@@ -204,10 +204,16 @@ function CartaoAprovacao({ lead, posicao, total, cfg, aoNavegar, aoConcluir, aoA
   toast: ReturnType<typeof useToast>;
 }) {
   const site = lead.site;
-  const [edicao, setEdicao] = useState<Edicao | null>(site ? edicaoDe(site.conteudo) : null);
-  const original = useMemo(() => (site ? JSON.stringify(edicaoDe(site.conteudo)) : ''), [site]);
+  const [edicao, setEdicao] = useState<Edicao | null>(site?.conteudo ? edicaoDe(site.conteudo) : null);
+  const original = useMemo(() => (site?.conteudo ? JSON.stringify(edicaoDe(site.conteudo)) : ''), [site]);
   const alterado = !!edicao && JSON.stringify(edicao) !== original;
-  const textoPadrao = useMemo(() => (site ? mensagemPrimeiroContato(lead, site, cfg) : ''), [lead, site, cfg]);
+  const textoPadrao = useMemo(() => {
+    try {
+      return site ? mensagemPrimeiroContato(lead, site, cfg) : '';
+    } catch {
+      return '';
+    }
+  }, [lead, site, cfg]);
   const [texto, setTexto] = useState(textoPadrao);
   const [painel, setPainel] = useState<Painel>(null);
   const [instrucao, setInstrucao] = useState('');
@@ -319,7 +325,7 @@ function CartaoAprovacao({ lead, posicao, total, cfg, aoNavegar, aoConcluir, aoA
   }, [aprovar, aoNavegar, ocupado, site]);
 
   const semTelefone = !lead.telefone;
-  const statusSite = STATUS_SITE[lead.status_site];
+  const statusSite = STATUS_SITE[lead.status_site] ?? STATUS_SITE.desconhecido;
   const linkInterno = site ? `/p/${site.slug}?k=${site.token_acesso}&interno=1` : '';
 
   const atualizar = (p: Partial<Edicao>) => setEdicao((e) => (e ? { ...e, ...p } : e));
@@ -413,7 +419,7 @@ function CartaoAprovacao({ lead, posicao, total, cfg, aoNavegar, aoConcluir, aoA
                         <textarea className="input min-h-[52px] text-xs" value={s.descricao} maxLength={LIMITES.descricao} onChange={(e) => atualizarServico(i, { descricao: e.target.value })} aria-label={`Descrição do serviço ${i + 1}`} />
                       </div>
                     ))}
-                    {edicao.servicos.length < site.conteudo.servicos.length && (
+                    {edicao.servicos.length < (site.conteudo.servicos ?? []).length && (
                       <button type="button" className="btn-fantasma text-xs" onClick={() => setEdicao(edicaoDe(site.conteudo))}>
                         <Plus size={13} /> Restaurar serviços removidos
                       </button>

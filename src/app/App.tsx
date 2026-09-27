@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { ErroTela } from '@/components/ErroTela';
 
 // Code-splitting: as páginas públicas (prévia, opt-out, demonstração) não carregam o painel nem o supabase-js
 const PaginaPrevia = lazy(() => import('@/public-site/PaginaPrevia'));
@@ -10,6 +11,7 @@ const AdminApp = lazy(() => import('./AdminApp'));
 export default function App() {
   return (
     <BrowserRouter>
+      <ErroTela>
       <Suspense fallback={null}>
         <Routes>
           <Route path="/p/:slug" element={<PaginaPrevia />} />
@@ -18,6 +20,7 @@ export default function App() {
           <Route path="/*" element={<AdminApp />} />
         </Routes>
       </Suspense>
+      </ErroTela>
     </BrowserRouter>
   );
 }
