@@ -12,6 +12,7 @@ import { formatarNumero, formatarTelefone } from '@/lib/format';
 import { STATUS_SITE, rotuloNicho, type Lead, type Site } from '@/lib/types';
 import { Badge, Erro, Pagina, Vazio } from '@/components/ui/Pagina';
 import { PreviaFrame } from '@/components/PreviaFrame';
+import { ErroTela } from '@/components/ErroTela';
 import { useToast } from '@/components/ui/Toast';
 
 type LeadComSite = Lead & { site: Site | null };
@@ -138,6 +139,7 @@ export default function Aprovacao() {
         <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
           <ListaFila leads={leads} idAtual={atual?.id ?? null} aoSelecionar={setIdAtual} />
           {atual && cfg.data && (
+            <ErroTela chave={atual.id}>
             <CartaoAprovacao
               key={atual.id}
               lead={atual}
@@ -151,6 +153,7 @@ export default function Aprovacao() {
               }
               toast={toast}
             />
+            </ErroTela>
           )}
           {cfg.error && <Erro erro={cfg.error} />}
         </div>
