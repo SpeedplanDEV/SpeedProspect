@@ -16,6 +16,7 @@ const Leads = lazy(() => import('@/pages/Leads'));
 const Aprovacao = lazy(() => import('@/pages/Aprovacao'));
 const Envios = lazy(() => import('@/pages/Envios'));
 const Funil = lazy(() => import('@/pages/Funil'));
+const ContasAds = lazy(() => import('@/pages/ads/Contas'));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false, retry: 1 } },
@@ -55,6 +56,8 @@ export default function AdminApp() {
                 <Route path="funil" element={<Funil />} />
                 <Route path="execucoes" element={<Execucoes />} />
                 <Route path="configuracoes" element={<Configuracoes />} />
+                <Route path="ads" element={<Navigate to="/ads/contas" replace />} />
+                <Route path="ads/contas" element={<ContasAds />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Routes>

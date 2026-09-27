@@ -23,3 +23,9 @@ verify_jwt = false
 
 [functions.pipeline]
 verify_jwt = false
+
+[functions.meta-ativos]
+verify_jwt = false
+
+[functions.meta-sync]
+verify_jwt = false

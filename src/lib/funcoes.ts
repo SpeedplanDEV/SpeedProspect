@@ -5,13 +5,22 @@ import { enderecoFuncao } from './config';
 
 export { urlFoto } from './config';
 
+/** Erro de Edge Function com a orientação do que corrigir (ex.: erros da Meta) */
+export class ErroFuncao extends Error {
+  constructor(mensagem: string, public orientacao?: string, public categoria?: string) {
+    super(mensagem);
+    this.name = 'ErroFuncao';
+  }
+}
+
 /** Chama uma Edge Function administrativa com o JWT do operador logado */
 export async function chamarFuncao<T = unknown>(nome: string, corpo: Record<string, unknown> = {}): Promise<T> {
   const { data, error } = await supabase.functions.invoke(enderecoFuncao(nome), { body: corpo });
   if (error) {
     if (error instanceof FunctionsHttpError) {
       const det = await error.context.json().catch(() => null);
-      throw new Error(det?.erro ? `${det.erro}${det.detalhe ? ` (${det.detalhe})` : ''}` : error.message);
+      if (det?.erro) throw new ErroFuncao(`${det.erro}${det.detalhe ? ` (${det.detalhe})` : ''}`, det.orientacao, det.categoria);
+      throw new Error(error.message);
     }
     if (/failed to send|fetch/i.test(error.message)) {
       throw new Error(`A Edge Function "${nome}" não respondeu. Ela já foi publicada no Supabase?`);

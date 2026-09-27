@@ -2,8 +2,8 @@ import { Suspense } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Activity, CheckSquare, Columns3, LayoutDashboard, LayoutTemplate, LogOut, Megaphone, Moon, Send, Settings, Sun,
-  SunMoon, Users, Zap,
+  Activity, Building2, CheckSquare, Columns3, LayoutDashboard, LayoutTemplate, LogOut, Megaphone, Moon, Send, Settings,
+  Sun, SunMoon, Users, Zap,
 } from 'lucide-react';
 import { useAuth } from './auth';
 import { useTema } from './tema';
@@ -20,6 +20,14 @@ const ITENS = [
   { para: '/execucoes', rotulo: 'Execuções', icone: Activity },
   { para: '/configuracoes', rotulo: 'Configurações', icone: Settings },
 ];
+
+/** Módulo SpeedProspect Ads (Meta Ads) — as demais páginas entram nas próximas fases */
+const ITENS_ADS = [{ para: '/ads/contas', rotulo: 'Contas de anúncio', icone: Building2 }];
+
+const classeLink = ({ isActive }: { isActive: boolean }) =>
+  `flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
+    isActive ? 'bg-marca/10 font-medium text-marca' : 'text-suave hover:bg-elevado hover:text-texto'
+  }`;
 
 /** Pendências mostradas no menu: prévias para aprovar e mensagens na fila de hoje */
 function useContadores() {
@@ -63,16 +71,7 @@ export default function Layout() {
         </div>
         <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
           {ITENS.map(({ para, rotulo, icone: Icone, fim, contador }) => (
-            <NavLink
-              key={para}
-              to={para}
-              end={fim}
-              className={({ isActive }) =>
-                `flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
-                  isActive ? 'bg-marca/10 font-medium text-marca' : 'text-suave hover:bg-elevado hover:text-texto'
-                }`
-              }
-            >
+            <NavLink key={para} to={para} end={fim} className={classeLink}>
               <Icone size={16} />
               {rotulo}
               {contador && !!contadores?.[contador] && (
@@ -82,6 +81,14 @@ export default function Layout() {
               )}
             </NavLink>
           ))}
+          <p className="px-3 pb-1 pt-4 text-[11px] font-medium uppercase tracking-wide text-fraco">Meta Ads</p>
+          {ITENS_ADS.map(({ para, rotulo, icone: Icone }) => (
+            <NavLink key={para} to={para} className={classeLink}>
+              <Icone size={16} />
+              {rotulo}
+            </NavLink>
+          ))}
+          <p className="px-3 pb-1 pt-4 text-[11px] font-medium uppercase tracking-wide text-fraco">Recursos</p>
           <a href="/demo/saude" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-suave transition-colors hover:bg-elevado hover:text-texto">
             <LayoutTemplate size={16} />
             Modelos de página

@@ -23,7 +23,10 @@ const ETAPAS = [
   { n: 8, rotulo: 'Fechados' },
 ];
 
-const ROTULO_ETAPA_EXEC: Record<string, string> = { coletar: 'Coleta', qualificar: 'Qualificação', gerar: 'Geração de prévias', followups: 'Follow-ups' };
+const ROTULO_ETAPA_EXEC: Record<string, string> = {
+  coletar: 'Coleta', qualificar: 'Qualificação', gerar: 'Geração de prévias', followups: 'Follow-ups',
+  'meta-sync': 'Meta Ads: sincronizar', 'meta-saude': 'Meta Ads: saúde das contas',
+};
 
 /** Últimos 12 meses (yyyy-mm-01) no fuso de São Paulo */
 function ultimosMeses(): { valor: string; rotulo: string }[] {

@@ -19,6 +19,8 @@ const ETAPAS = [
   { valor: 'qualificar', rotulo: 'Qualificar' },
   { valor: 'gerar', rotulo: 'Gerar prévias' },
   { valor: 'followups', rotulo: 'Follow-ups' },
+  { valor: 'meta-sync', rotulo: 'Meta Ads: sincronizar' },
+  { valor: 'meta-saude', rotulo: 'Meta Ads: saúde das contas' },
 ];
 const rotuloEtapa = (e: string) => ETAPAS.find((x) => x.valor === e)?.rotulo ?? e;
 

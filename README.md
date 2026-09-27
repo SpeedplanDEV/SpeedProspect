@@ -253,3 +253,62 @@ pg_cron (UTC)            → sp_chamar_pipeline(etapa)  → pg_net POST → Edge
 3. **Envios:** envie os primeiros contatos e os follow-ups do dia (1 clique cada, respeitando o limite diário).
 4. **Funil:** arraste quem respondeu, está negociando ou fechou; informe o valor ao fechar.
 5. **Semanal:** Execuções (erros e custos) e Campanhas (novos bairros/termos).
+
+---
+
+# SpeedProspect Ads (Meta Ads) — Fases 8 a 14
+
+Módulo de Meta Ads com IA: contas da agência e dos clientes, pesquisa de nicho, públicos, wizard de campanha,
+criativos, publicação **sempre pausada**, otimização e cobrança. Especificação: `docs/PROMPT_SPEEDPROSPECT_META_ADS.md`.
+
+Regras fixas do módulo: tudo é criado com `status: PAUSED` e só é ativado pelo operador; a única ação automática
+permitida é **pausar**; tetos por conta (diário e mensal); o token da Meta fica só nas Edge Functions; fotos do
+Google Places nunca vão para anúncios; listas de clientes só com base legal; valores em centavos na API.
+
+## Pré-requisitos na Meta (feitos uma vez)
+
+1. **Business Manager** da agência com **forma de pagamento** em cada conta de anúncios (Gerenciador de Anúncios →
+   Faturamento). A API não cadastra cartão.
+2. **App** em Meta for Developers, tipo **Business**, vinculado ao BM, com o produto **Marketing API**. Permissões:
+   `ads_management`, `ads_read`, `business_management`, `pages_show_list`, `pages_read_engagement`,
+   `pages_manage_ads` (+ `leads_retrieval` para formulários instantâneos e `instagram_basic`).
+3. **System User** (administrador) no BM, com o app atribuído. Em **Atribuir ativos**, dê controle total às contas
+   de anúncio, Páginas, pixels e contas do Instagram. Gere o **token do System User** (validade "Nunca") com as
+   permissões acima.
+4. Contas de **clientes**: adicione a conta de anúncios/Página do cliente como **parceiro** no seu BM (ou crie a
+   conta dentro dele) e atribua ao System User. Ativos fora do BM exigem App Review; evite.
+5. Anúncios de **WhatsApp**: o número do WhatsApp Business conectado à Página.
+6. **Pixel/Dataset** por cliente (ou um da agência para as prévias) instalado nos sites.
+7. **Domínio** verificado no BM (recomendado para conversões).
+
+## Fase 8 — Integração e contas
+
+- `supabase/migrations/20261003000000_fase8_meta_ads.sql`: todas as tabelas do módulo (seção 5 do prompt) +
+  `midias_ads`, colunas para importar objetos já existentes (`origem`, status reais da Meta, problemas), saúde das
+  contas, as 7 regras padrão de otimização (globais), `get_relatorio_publico`, `meta_sincronizar`,
+  `meta_ids_da_conta` e o bucket privado `ads-midia` (acesso só para operadores).
+- `_shared/meta.ts`: cliente da Graph API — versão fixa (`META_API_VERSION`), token do System User,
+  `appsecret_proof`, GET/POST/DELETE, **lote** (`batch`, até 50 operações, com repetição dos itens que falham
+  temporariamente), paginação por cursor, **3 tentativas com backoff** e espera nos limites de uso (códigos 4, 17,
+  32, 613, 80000–80014 e cabeçalhos `x-business-use-case-usage`), erros traduzidos com **o que corrigir no BM** e
+  tokens mascarados em qualquer mensagem.
+- `_shared/meta-mapa.ts`: tradução de status/objetivos/criativos e avaliação de **saúde** da conta (status,
+  pagamento, WhatsApp, pixel, Instagram).
+- Edge Function **`meta-ativos`**: `diagnostico` (token, versão, permissões), `listar` (contas de anúncio e Páginas
+  com Instagram e WhatsApp), `pixels`, `saude` (grava em `contas_ads.saude` e notifica problemas).
+- Edge Function **`meta-sync`**: importa campanhas, conjuntos e anúncios existentes (somente leitura, `origem =
+  importado`) e sincroniza o status real dos criados pelo sistema. Como a Meta desativa o `GET /?ids=` em
+  27/10/2026, objetos fora da listagem são conferidos via `batch`.
+- Painel **Meta Ads → Contas de anúncio** (`/ads/contas`): conexão com a Meta, passo a passo, conectar/editar conta
+  (conta de anúncios, Página, Instagram, pixel, WhatsApp, tipo agência/cliente, vínculo com lead fechado, tetos,
+  modo de otimização, taxa de gestão), indicadores de saúde, sincronização e **biblioteca de mídia** (imagem ≥ 1080
+  px, vídeo ≤ 4 GB, proporções 1:1, 4:5 e 9:16; arquivos grandes em partes de 6 MB).
+
+### Setup da Fase 8
+1. Rode `supabase/migrations/20261003000000_fase8_meta_ads.sql` no SQL Editor (depois das Fases 5 a 7).
+2. Supabase → Edge Functions → **Secrets**: `META_API_VERSION` = `v26.0`, `META_SYSTEM_USER_TOKEN`,
+   `META_APP_ID`, `META_APP_SECRET`.
+3. Publique `meta-ativos` e `meta-sync` (editor: `supabase/editor/meta-ativos.ts` e `meta-sync.ts`). Se o editor
+   der outro endereço, ajuste `supabase/functions/_shared/enderecos.ts`.
+4. No painel: **Contas de anúncio → Conectar conta**.
+5. Vídeos grandes: no plano gratuito do Supabase o limite de upload é 50 MB por arquivo (Storage → Settings).
