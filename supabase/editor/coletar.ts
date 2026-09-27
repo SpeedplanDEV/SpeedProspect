@@ -45,7 +45,7 @@ function ehCelular(e164: string | null | undefined): boolean {
 function semAcento(v: string | null | undefined): string {
   return (v ?? '')
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/\s+/g, ' ')
     .trim();
