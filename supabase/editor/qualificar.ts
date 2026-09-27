@@ -74,7 +74,7 @@ const FRANQUIAS = [
 const TITULOS_PADRAO =
   /site em constru|em constru[cç][aã]o|coming soon|under construction|em breve|website em manuten|p[aá]gina em manuten|domain for sale|dom[ií]nio [aà] venda|this domain|parked|index of \/|default web site|welcome to nginx|apache2? .*default|it works!|my site|meu site|wix\.com/i;
 
-const sa = (v: string) => v.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const sa = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 function ehFranquia(nome: string): boolean {
   const n = sa(nome);
