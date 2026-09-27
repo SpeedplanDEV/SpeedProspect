@@ -3,7 +3,7 @@
 Sistema interno de prospecção: busca empresas no Google Maps (Places API New), qualifica,
 gera uma landing page de prévia com a Claude API e prepara a abordagem por WhatsApp (envio com 1 clique pelo operador).
 
-> Status: **Fase 2 — Coleta** (Google Places API New, cache de 30 dias, página Leads).
+> Status: **Fase 3 — Qualificação** (checagem de site, score 0–100, descartes automáticos).
 > O README completo de operação é entregue na Fase 7.
 
 ## Requisitos
@@ -85,3 +85,19 @@ Regras da coleta:
    - CLI: `supabase functions deploy --project-ref ruseutthqcknhkqpqmyj`
 
 Testes: `npm test` (normalização de telefone, bairro/cidade e montagem das consultas).
+
+## Fase 3 — Qualificação (Edge Function `qualificar`)
+
+Processa leads `novo` (ou um lead específico com `{ "lead_id": "..." }` — botão "Requalificar").
+Regras puras em `supabase/functions/_shared/qualificacao.ts` (as mesmas usadas pelo painel para auditar o score).
+
+- **Checagem do site** (timeout 8 s, segue redirects, User-Agent de navegador): `sem_site`, `site_fraco`
+  (rede social/link na bio/iFood/WhatsApp, http sem https, erro ≥ 400, DNS/TLS/timeout, sem meta viewport,
+  HTML < 5 KB, título vazio ou de página padrão/"em construção") ou `site_ok`.
+- **Score**: site (40/30/5) + nota (20/12/4) + volume `min(20, round(log10(n+1)·8))` + telefone (celular 15 / fixo 5) + horários 5.
+- **Descartes**: não operacional, sem telefone, franquia/rede (lista em `FRANQUIAS`), `site_ok` sem `prospectar_site_ok`, score abaixo do mínimo.
+- Em Campanhas, "Executar agora" coleta e já qualifica em seguida.
+
+### Deploy pelo editor do painel
+Sem CLI/token, gere os arquivos únicos com `node scripts/gerar-editor.mjs` e cole `supabase/editor/<função>.ts`
+em Edge Functions → Deploy a new function → Via Editor (nome da função = nome do arquivo).

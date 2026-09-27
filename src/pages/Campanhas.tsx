@@ -12,7 +12,9 @@ import { Drawer } from '@/components/ui/Drawer';
 import { Switch } from '@/components/ui/Switch';
 import { TagInput } from '@/components/ui/TagInput';
 import { useToast } from '@/components/ui/Toast';
-import { chamarFuncao, textoResumoColeta, type ResumoColeta } from '@/lib/funcoes';
+import {
+  chamarFuncao, textoResumoColeta, textoResumoQualificacao, type ResumoColeta, type ResumoQualificacao,
+} from '@/lib/funcoes';
 
 
 const VAZIA: CampanhaForm = {
@@ -50,14 +52,21 @@ export default function Campanhas() {
   });
 
   const executar = useMutation({
-    mutationFn: (c: Campanha) => chamarFuncao<ResumoColeta>('coletar', { campanha_id: c.id }),
-    onSuccess: (r) => {
+    // Coleta e, em seguida, qualifica os leads novos
+    mutationFn: async (c: Campanha) => {
+      const coleta = await chamarFuncao<ResumoColeta>('coletar', { campanha_id: c.id });
+      if (coleta.resumo.some((x) => x.erro)) return { coleta, qualif: null };
+      const qualif = await chamarFuncao<ResumoQualificacao>('qualificar', {});
+      return { coleta, qualif };
+    },
+    onSuccess: ({ coleta, qualif }) => {
       qc.invalidateQueries({ queryKey: ['campanhas'] });
       qc.invalidateQueries({ queryKey: ['execucoes'] });
       qc.invalidateQueries({ queryKey: ['leads'] });
-      const erro = r.resumo.some((x) => x.erro);
-      toast(textoResumoColeta(r), erro ? 'erro' : 'sucesso');
+      const erro = coleta.resumo.some((x) => x.erro);
+      toast(textoResumoColeta(coleta) + (qualif ? ` ${textoResumoQualificacao(qualif)}` : ''), erro ? 'erro' : 'sucesso');
     },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['leads'] }),
     onError: (e: Error) => toast(e.message, 'erro'),
   });
 

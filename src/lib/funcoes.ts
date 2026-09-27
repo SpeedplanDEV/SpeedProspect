@@ -35,3 +35,17 @@ export function textoResumoColeta(r: ResumoColeta): string {
   const limite = r.resumo.some((x) => x.limite_atingido) ? ' Limite diário de buscas atingido.' : '';
   return `Coleta concluída: ${novos} lead(s) novo(s), ${buscas} busca(s) usada(s), ${r.buscas_restantes_hoje} restante(s) hoje.${limite}`;
 }
+
+export interface ResumoQualificacao {
+  ok: boolean;
+  processados: number;
+  qualificados?: number;
+  descartados?: number;
+  restantes?: number;
+}
+
+export function textoResumoQualificacao(r: ResumoQualificacao): string {
+  if (!r.processados) return 'Nenhum lead novo para qualificar.';
+  const resto = r.restantes ? ` ${r.restantes} ficaram para a próxima rodada.` : '';
+  return `Qualificação: ${r.qualificados ?? 0} qualificado(s), ${r.descartados ?? 0} descartado(s).${resto}`;
+}

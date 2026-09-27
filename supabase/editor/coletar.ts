@@ -1,6 +1,52 @@
 // SpeedProspect — Edge Function `coletar` (arquivo único para o editor do Supabase)
+// Gerado por scripts/gerar-editor.mjs a partir de supabase/functions — não edite à mão.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { z } from 'npm:zod@3';
+
+// ===== _shared/supabase.ts =====
+const cors = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+};
+
+function json(corpo: unknown, status = 200, extra: Record<string, string> = {}) {
+  return new Response(JSON.stringify(corpo), {
+    status,
+    headers: { ...cors, 'Content-Type': 'application/json; charset=utf-8', ...extra },
+  });
+}
+
+/** Cliente com service role (ignora RLS) — só dentro das Edge Functions */
+function admin(): SupabaseClient {
+  const url = Deno.env.get('SUPABASE_URL');
+  const chave = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!url || !chave) throw new Error('SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY ausentes');
+  return createClient(url, chave, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+
+/**
+ * Funções administrativas aceitam:
+ *  - Authorization: Bearer <SERVICE_ROLE_KEY> (cron / pipeline)
+ *  - Authorization: Bearer <JWT do operador logado> (botão "Executar agora")
+ */
+async function autorizarAdmin(req: Request, db: SupabaseClient): Promise<string | null> {
+  const token = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '').trim();
+  if (!token) return null;
+  const service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (service && token === service) return 'service_role';
+  const { data, error } = await db.auth.getUser(token);
+  if (error || !data.user) return null;
+  return data.user.email ?? data.user.id;
+}
+
+/** Início do dia de hoje em America/Sao_Paulo, como ISO UTC */
+function inicioDoDiaSP(agora = new Date()): string {
+  const partes = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(agora); // yyyy-mm-dd
+  return new Date(`${partes}T00:00:00-03:00`).toISOString();
+}
 
 // ===== _shared/normalizar.ts =====
 // Funções puras de normalização (sem dependências do Deno — testadas com Vitest)
@@ -91,7 +137,6 @@ function montarConsultas(c: { termos_busca: string[]; bairros: string[]; cidade:
 
 // ===== _shared/places.ts =====
 // Cliente da Google Places API (New) — somente Text Search oficial. Nada de scraping.
-
 const PLACES_URL = 'https://places.googleapis.com/v1/places:searchText';
 
 const FIELD_MASK = [
@@ -211,52 +256,6 @@ function placeParaLead(p: PlaceBruto) {
   };
 }
 
-// ===== _shared/supabase.ts =====
-
-const cors = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-};
-
-function json(corpo: unknown, status = 200, extra: Record<string, string> = {}) {
-  return new Response(JSON.stringify(corpo), {
-    status,
-    headers: { ...cors, 'Content-Type': 'application/json; charset=utf-8', ...extra },
-  });
-}
-
-/** Cliente com service role (ignora RLS) — só dentro das Edge Functions */
-function admin(): SupabaseClient {
-  const url = Deno.env.get('SUPABASE_URL');
-  const chave = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!url || !chave) throw new Error('SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY ausentes');
-  return createClient(url, chave, { auth: { persistSession: false, autoRefreshToken: false } });
-}
-
-/**
- * Funções administrativas aceitam:
- *  - Authorization: Bearer <SERVICE_ROLE_KEY> (cron / pipeline)
- *  - Authorization: Bearer <JWT do operador logado> (botão "Executar agora")
- */
-async function autorizarAdmin(req: Request, db: SupabaseClient): Promise<string | null> {
-  const token = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '').trim();
-  if (!token) return null;
-  const service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (service && token === service) return 'service_role';
-  const { data, error } = await db.auth.getUser(token);
-  if (error || !data.user) return null;
-  return data.user.email ?? data.user.id;
-}
-
-/** Início do dia de hoje em America/Sao_Paulo, como ISO UTC */
-function inicioDoDiaSP(agora = new Date()): string {
-  const partes = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
-  }).format(agora); // yyyy-mm-dd
-  return new Date(`${partes}T00:00:00-03:00`).toISOString();
-}
-
 // ===== _shared/log.ts =====
 type Nivel = 'info' | 'aviso' | 'erro';
 
@@ -313,7 +312,6 @@ class Execucao {
 // ===== coletar/index.ts =====
 // Edge Function `coletar` — busca empresas pela Google Places API (New) e grava em `leads`.
 // Regras: cache de 30 dias por place_id e por consulta, respeita limite_buscas_dia, ignora bloqueios (opt-out).
-
 const MAX_PAGINAS = 3;
 const DIAS_CACHE = 30;
 
@@ -509,4 +507,3 @@ async function processarPagina(
     cont.novos += data?.length ?? 0;
   }
 }
-

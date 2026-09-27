@@ -1,11 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, Search, Smartphone } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ChevronLeft, ChevronRight, Loader2, Search, ShieldCheck, Smartphone } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatarNumero, formatarTelefone } from '@/lib/format';
 import { NICHOS, STATUS_FUNIL, STATUS_SITE, rotuloNicho, statusFunil, type Campanha, type Lead } from '@/lib/types';
 import { Badge, Erro, Pagina, Vazio } from '@/components/ui/Pagina';
 import { DetalheLead } from '@/components/DetalheLead';
+import { useToast } from '@/components/ui/Toast';
+import { chamarFuncao, textoResumoQualificacao, type ResumoQualificacao } from '@/lib/funcoes';
+import { resumoDetalheSite, rotuloDescarte } from '@/lib/qualificacao';
+
+const corScore = (s: number) => (s >= 70 ? 'text-emerald-600' : s >= 50 ? 'text-amber-600' : 'text-suave');
 
 const POR_PAGINA = 100;
 const ORDENS = [
@@ -25,6 +30,27 @@ export default function Leads() {
   const [ordem, setOrdem] = useState<(typeof ORDENS)[number]['valor']>('score');
   const [pagina, setPagina] = useState(0);
   const [selecionado, setSelecionado] = useState<string | null>(null);
+  const qc = useQueryClient();
+  const toast = useToast();
+
+  const novos = useQuery({
+    queryKey: ['leads', 'contagem-novos'],
+    queryFn: async () => {
+      const { count, error } = await supabase.from('leads').select('id', { count: 'exact', head: true }).eq('status_funil', 'novo');
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
+  const qualificar = useMutation({
+    mutationFn: () => chamarFuncao<ResumoQualificacao>('qualificar', {}),
+    onSuccess: (r) => toast(textoResumoQualificacao(r)),
+    onError: (e: Error) => toast(e.message, 'erro'),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['leads'] });
+      qc.invalidateQueries({ queryKey: ['execucoes'] });
+    },
+  });
 
   // Busca por nome com atraso para não consultar a cada tecla
   useEffect(() => {
@@ -68,7 +94,21 @@ export default function Leads() {
   const ultimaPagina = Math.max(0, Math.ceil(total / POR_PAGINA) - 1);
 
   return (
-    <Pagina titulo="Leads" descricao={`${formatarNumero(total)} empresa(s) encontrada(s)`}>
+    <Pagina
+      titulo="Leads"
+      descricao={`${formatarNumero(total)} empresa(s) encontrada(s)`}
+      acoes={
+        <button
+          className="btn-primario"
+          disabled={qualificar.isPending || !novos.data}
+          onClick={() => qualificar.mutate()}
+          title="Checa o site, calcula o score e qualifica os leads com status Novo"
+        >
+          {qualificar.isPending ? <Loader2 size={15} className="animate-spin" /> : <ShieldCheck size={15} />}
+          {qualificar.isPending ? 'Qualificando…' : `Qualificar novos (${formatarNumero(novos.data ?? 0)})`}
+        </button>
+      }
+    >
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <div className="relative w-64">
           <Search size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-fraco" />
@@ -136,12 +176,16 @@ export default function Leads() {
                     <td className="text-right tabular-nums">{l.rating != null ? formatarNumero(l.rating, 1) : '—'}</td>
                     <td className="text-right tabular-nums">{formatarNumero(l.reviews_count)}</td>
                     <td>
-                      <span title={l.detalhe_site ? JSON.stringify(l.detalhe_site, null, 1) : undefined}>
+                      <span title={resumoDetalheSite(l.detalhe_site)} className="cursor-help">
                         <Badge cor={s.cor}>{s.rotulo}</Badge>
                       </span>
                     </td>
-                    <td className="text-right font-medium tabular-nums">{l.score}</td>
-                    <td><Badge cor={f.cor}>{f.rotulo}</Badge></td>
+                    <td className={`text-right font-medium tabular-nums ${corScore(l.score)}`}>{l.score}</td>
+                    <td>
+                      <span title={rotuloDescarte(l.motivo_descarte) ?? undefined}>
+                        <Badge cor={f.cor}>{f.rotulo}</Badge>
+                      </span>
+                    </td>
                     <td className="max-w-[160px] truncate text-suave">{nomeCampanha(l.campanha_id)}</td>
                   </tr>
                 );

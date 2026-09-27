@@ -1,8 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ExternalLink, MapPin, Phone, Globe, Star } from 'lucide-react';
+import { ExternalLink, Globe, Loader2, MapPin, Phone, RefreshCw, Star } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { urlFoto } from '@/lib/funcoes';
+import { chamarFuncao, urlFoto } from '@/lib/funcoes';
+import { calcularScore, rotuloDescarte } from '@/lib/qualificacao';
 import { formatarData, formatarDataHora, formatarNumero, formatarTelefone } from '@/lib/format';
 import {
   STATUS_FUNIL, STATUS_SITE, rotuloNicho, statusFunil, type Evento, type Lead, type Mensagem, type StatusFunil,
@@ -84,7 +85,18 @@ export function DetalheLead({ leadId, aoFechar, nomeCampanha }: {
     onError: (e: Error) => toast(e.message, 'erro'),
   });
 
+  const requalificar = useMutation({
+    mutationFn: () => chamarFuncao('qualificar', { lead_id: leadId }),
+    onSuccess: () => toast('Lead requalificado'),
+    onError: (e: Error) => toast(e.message, 'erro'),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['lead', leadId] });
+      qc.invalidateQueries({ queryKey: ['leads'] });
+    },
+  });
+
   const l = data?.lead;
+  const auditoria = l ? calcularScore({ ...l, horarios: l.horarios ?? null }) : null;
   const alterado = !!l && ((l.observacoes ?? '') !== obs || l.status_funil !== status);
 
   return (
@@ -113,7 +125,16 @@ export function DetalheLead({ leadId, aoFechar, nomeCampanha }: {
             <Badge cor={STATUS_SITE[l.status_site].cor}>{STATUS_SITE[l.status_site].rotulo}</Badge>
             <Badge cor={statusFunil(l.status_funil).cor}>{statusFunil(l.status_funil).rotulo}</Badge>
             <span className="text-sm text-suave">Score <span className="font-medium text-texto">{l.score}</span></span>
-            {l.motivo_descarte && <span className="text-sm text-red-500">Motivo: {l.motivo_descarte}</span>}
+            {l.motivo_descarte && <span className="text-sm text-red-500">Motivo: {rotuloDescarte(l.motivo_descarte)}</span>}
+            <button
+              className="btn-secundario ml-auto px-2 py-1 text-xs"
+              disabled={requalificar.isPending}
+              onClick={() => requalificar.mutate()}
+              title="Checa o site de novo e recalcula o score"
+            >
+              {requalificar.isPending ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+              Requalificar
+            </button>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -173,9 +194,47 @@ export function DetalheLead({ leadId, aoFechar, nomeCampanha }: {
             </dl>
           </Secao>
 
-          {l.detalhe_site && (
-            <Secao titulo="Checagem do site">
-              <pre className="overflow-x-auto rounded-md bg-elevado p-3 text-xs">{JSON.stringify(l.detalhe_site, null, 2)}</pre>
+          <Secao titulo="Checagem do site">
+            {!l.detalhe_site ? (
+              <p className="text-sm text-suave">Ainda não verificado. Clique em “Requalificar”.</p>
+            ) : (
+              <div className="rounded-md border border-borda p-3 text-sm">
+                <p className="mb-2">{String(l.detalhe_site.motivo ?? '')}</p>
+                <dl className="grid grid-cols-3 gap-x-4 gap-y-1.5 text-xs">
+                  <div><dt className="text-suave">HTTP</dt><dd>{String(l.detalhe_site.status_http ?? '—')}</dd></div>
+                  <div><dt className="text-suave">Tempo</dt><dd>{l.detalhe_site.tempo_ms != null ? `${l.detalhe_site.tempo_ms} ms` : '—'}</dd></div>
+                  <div><dt className="text-suave">Tamanho</dt><dd>{l.detalhe_site.tamanho_kb != null ? `${String(l.detalhe_site.tamanho_kb).replace('.', ',')} KB` : '—'}</dd></div>
+                  <div><dt className="text-suave">HTTPS</dt><dd>{l.detalhe_site.https ? 'Sim' : 'Não'}</dd></div>
+                  <div><dt className="text-suave">Adaptado ao celular</dt><dd>{l.detalhe_site.viewport ? 'Sim' : 'Não'}</dd></div>
+                  <div><dt className="text-suave">Host</dt><dd className="truncate">{String(l.detalhe_site.host ?? '—')}</dd></div>
+                  {!!l.detalhe_site.titulo && (
+                    <div className="col-span-3"><dt className="text-suave">Título</dt><dd className="truncate">{String(l.detalhe_site.titulo)}</dd></div>
+                  )}
+                </dl>
+              </div>
+            )}
+          </Secao>
+
+          {auditoria && (
+            <Secao titulo="Como o score foi calculado">
+              <table className="w-full text-sm">
+                <tbody>
+                  {auditoria.parcelas.map((p) => (
+                    <tr key={p.item} className="border-b border-borda last:border-0">
+                      <td className="py-1.5">{p.item}</td>
+                      <td className="py-1.5 text-suave">{p.detalhe}</td>
+                      <td className="py-1.5 text-right tabular-nums">+{p.pontos}</td>
+                    </tr>
+                  ))}
+                  <tr>
+                    <td className="pt-2 font-medium" colSpan={2}>Total (máx. 100)</td>
+                    <td className="pt-2 text-right font-medium tabular-nums">{auditoria.score}</td>
+                  </tr>
+                </tbody>
+              </table>
+              {auditoria.score !== l.score && (
+                <p className="mt-1 text-xs text-amber-600">O score salvo ({l.score}) está desatualizado. Clique em “Requalificar”.</p>
+              )}
             </Secao>
           )}
 
