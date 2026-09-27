@@ -9,6 +9,7 @@ import { MODELOS_IA, configuracoesSchema, type ConfiguracoesDados, type Configur
 import type { Configuracoes as Config } from '@/lib/types';
 import { CampoErro, Erro, Pagina } from '@/components/ui/Pagina';
 import { Switch } from '@/components/ui/Switch';
+import { LogoAgencia } from '@/components/LogoAgencia';
 import { useToast } from '@/components/ui/Toast';
 
 export default function Configuracoes() {
@@ -80,6 +81,9 @@ export default function Configuracoes() {
                 <label className="label" htmlFor="negocio_whatsapp">WhatsApp do operador</label>
                 <input id="negocio_whatsapp" className="input" placeholder="(17) 99999-9999" {...register('negocio_whatsapp')} />
                 <CampoErro msg={e.negocio_whatsapp?.message} />
+              </div>
+              <div className="sm:col-span-2">
+                <LogoAgencia logo={data?.negocio_logo ?? null} nome={data?.negocio_nome ?? ''} />
               </div>
               <div className="sm:col-span-2">
                 <label className="label" htmlFor="app_url">URL pública do app</label>

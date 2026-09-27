@@ -168,3 +168,8 @@ nunca aparecem. O menu lateral mostra quantas prévias aguardam aprovação e qu
 ### Setup da Fase 5
 1. Rode `supabase/migrations/20260929000000_fase5_envios.sql` no SQL Editor.
 2. Confira em Configurações: **URL pública do app**, **nome do negócio** (assinatura das mensagens) e **envios / dia**.
+
+### Logo da agência
+Configurações → **Logo da agência**: a imagem é reduzida no navegador e fica em `configuracoes.negocio_logo`
+(data URL, até ~400 KB). Aparece na barra do topo de todas as prévias; sem logo, aparecem as iniciais do nome.
+Requer `supabase/migrations/20260930000000_logo_agencia.sql`.

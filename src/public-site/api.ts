@@ -16,6 +16,7 @@ export interface SitePublico {
   avaliacoes?: { autor: string; nota: number; texto: string; data: string }[];
   negocio_nome: string;
   negocio_whatsapp: string;
+  negocio_logo?: string | null;
 }
 
 export async function buscarSite(slug: string, token: string | null): Promise<SitePublico | null> {

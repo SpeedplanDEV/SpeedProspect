@@ -21,6 +21,7 @@ export interface Configuracoes {
   id: number;
   negocio_nome: string;
   negocio_whatsapp: string;
+  negocio_logo: string | null;
   app_url: string;
   limite_buscas_dia: number;
   limite_geracoes_dia: number;

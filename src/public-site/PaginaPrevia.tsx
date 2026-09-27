@@ -55,6 +55,7 @@ export default function PaginaPrevia() {
         empresa={s.conteudo.empresa.nome}
         negocioNome={s.negocio_nome}
         negocioWhatsapp={s.negocio_whatsapp}
+        negocioLogo={s.negocio_logo}
         aoQuerer={() => registrar('clique_quero')}
       />
       {!s.publicado && (
