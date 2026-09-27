@@ -31,6 +31,8 @@ export interface Configuracoes {
   prospectar_site_ok: boolean;
   modelo_ia: string;
   preco_texto: string;
+  automacao_ativa?: boolean;
+  alerta_custo_mes?: number;
   atualizado_em: string;
 }
 

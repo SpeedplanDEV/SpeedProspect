@@ -3,8 +3,9 @@
 Sistema interno de prospecção: busca empresas no Google Maps (Places API New), qualifica,
 gera uma landing page de prévia com a Claude API e prepara a abordagem por WhatsApp (envio com 1 clique pelo operador).
 
-> Status: **Fase 4 — Prévias com IA** (Claude API, 5 templates por nicho, rota pública, tracking e opt-out).
-> O README completo de operação é entregue na Fase 7.
+> Status: **Fase 7 — completo.** Coleta → qualificação → prévia com IA → aprovação → envio com 1 clique →
+> follow-ups → funil e dashboard, rodando sozinho todo dia (pg_cron). Veja **Subir do zero** e
+> **Operação diária** no fim deste arquivo.
 
 ## Requisitos
 
@@ -197,3 +198,56 @@ Tudo em funções SQL (migration `20261001000000_fase6_funil.sql`) — sem Edge 
 
 ### Setup da Fase 6
 Rode `supabase/migrations/20261001000000_fase6_funil.sql` no SQL Editor.
+
+
+## Fase 7 — Automação, custos e endurecimento
+
+### Como funciona
+```
+pg_cron (UTC)            → sp_chamar_pipeline(etapa)  → pg_net POST → Edge Function `pipeline`
+  03:00 coletar            (lê URL e service role          (Authorization: Bearer <service role>)
+  03:30/03:50 qualificar    do Vault)                       → chama coletar / qualificar / gerar-previa
+  04:00–05:50 gerar (10 min)                                  (3 tentativas com backoff; falha → Execuções)
+  08:00 follow-ups         → agendar_followups() direto no SQL
+```
+(horários de Brasília; o cron guarda em UTC: `0 6`, `30,50 6`, `*/10 7-8`, `0 11`)
+
+- **Liga/desliga:** Configurações → Automação e custos. Desligada, o pipeline ignora as chamadas do cron (o operador
+  continua podendo rodar tudo pelos botões "Executar agora").
+- **Limites:** cada etapa respeita os limites diários de Configurações; `gerar` nunca gera duas vezes para o mesmo
+  lead sem ação manual; o custo de cada execução fica em `execucoes.custo_estimado`.
+- **Alerta de custo:** o Dashboard avisa quando o custo estimado do mês passa do valor configurado.
+- **Status:** Execuções → Automação diária mostra as tarefas, a última execução de cada uma, as respostas do
+  pipeline e se os segredos existem; **Testar pelo cron** dispara uma etapa pelo mesmo caminho do cron.
+- **Segurança:** dados só para e-mails na tabela `operadores` (os usuários existentes entram sozinhos ao rodar a
+  migration). Segredos só no Vault / Edge Function secrets. `track`, `optout` e `foto` são públicas com limite por IP.
+
+### Setup da Fase 7
+1. Rode `supabase/migrations/20261002000000_fase7_automacao.sql` no SQL Editor.
+2. Publique a função `pipeline` (Edge Functions → Deploy a new function → Via Editor → nome `pipeline` → cole
+   `supabase/editor/pipeline.ts` → Deploy). Em Details, desligue **Verify JWT** (opcional; com ele ligado também funciona).
+3. Grave os segredos no Vault (SQL Editor). A chave é a **service_role** em Settings → API Keys → Legacy API keys:
+   ```sql
+   select sp_definir_segredo('sp_pipeline_url', 'https://<ref>.supabase.co/functions/v1/pipeline');
+   select sp_definir_segredo('sp_service_role', '<service_role key>');
+   ```
+4. Ligue em Configurações → **Rodar o pipeline automaticamente todo dia** e use **Testar pelo cron** em Execuções.
+
+## Subir do zero (resumo)
+1. Supabase: crie o projeto, rode as migrations de `supabase/migrations/` **em ordem** no SQL Editor e crie o
+   usuário operador (Authentication → Users → Add user, "Auto confirm"). Desative "Allow new users to sign up".
+2. Secrets das Edge Functions: `GOOGLE_PLACES_API_KEY` (Places API New habilitada) e `ANTHROPIC_API_KEY`.
+3. Publique as funções `coletar`, `qualificar`, `gerar-previa`, `track`, `optout`, `foto` e `pipeline`
+   (CLI/GitHub Actions ou editor com `supabase/editor/*.ts`). Se o editor der outro endereço a uma função,
+   ajuste `supabase/functions/_shared/enderecos.ts`. Desligue Verify JWT em `foto` (as imagens carregam sem login).
+4. Vercel: importe o repositório (framework Vite). As variáveis `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` são
+   opcionais (há valores padrão em `src/lib/config.ts` para este projeto).
+5. No painel: Configurações (nome, WhatsApp, URL pública, logo, limites, modelo de IA, automação), depois crie
+   uma campanha e rode a Fase 7 (Vault + automação).
+
+## Operação diária
+1. **Manhã:** Dashboard → veja leads quentes (abriram nas últimas 48 h) e converse com eles primeiro.
+2. **Aprovação:** revise as prévias geradas de madrugada (A aprova, R regenera, D descarta, → próxima).
+3. **Envios:** envie os primeiros contatos e os follow-ups do dia (1 clique cada, respeitando o limite diário).
+4. **Funil:** arraste quem respondeu, está negociando ou fechou; informe o valor ao fechar.
+5. **Semanal:** Execuções (erros e custos) e Campanhas (novos bairros/termos).

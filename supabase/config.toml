@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.optout]
 verify_jwt = false
+
+[functions.pipeline]
+verify_jwt = false

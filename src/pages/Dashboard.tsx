@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, Flame, MessageCircle } from 'lucide-react';
 import { painelDashboard, type Painel } from '@/lib/fila';
+import { supabase } from '@/lib/supabase';
 import { formatarDataHora, formatarMoeda, formatarNumero, formatarTelefone, paraE164 } from '@/lib/format';
 import { rotuloNicho } from '@/lib/types';
 import { Erro, Pagina, Vazio } from '@/components/ui/Pagina';
@@ -46,6 +47,15 @@ export default function Dashboard() {
   const [mes, setMes] = useState(meses[0].valor);
   const atual = mes === meses[0].valor;
 
+  const alerta = useQuery({
+    queryKey: ['configuracoes', 'alerta_custo'],
+    queryFn: async () => {
+      const { data } = await supabase.from('configuracoes').select('*').eq('id', 1).single();
+      const v = (data as { alerta_custo_mes?: number } | null)?.alerta_custo_mes;
+      return v == null ? null : Number(v);
+    },
+  });
+
   const { data, error, isLoading } = useQuery({
     queryKey: ['painel', mes],
     queryFn: () => painelDashboard(mes),
@@ -62,12 +72,12 @@ export default function Dashboard() {
         </select>
       }
     >
-      {error ? <Erro erro={error} /> : isLoading || !data ? <div className="text-sm text-suave">Carregando…</div> : <Conteudo p={data} atual={atual} />}
+      {error ? <Erro erro={error} /> : isLoading || !data ? <div className="text-sm text-suave">Carregando…</div> : <Conteudo p={data} atual={atual} alertaCusto={alerta.data ?? null} />}
     </Pagina>
   );
 }
 
-function Conteudo({ p, atual }: { p: Painel; atual: boolean }) {
+function Conteudo({ p, atual, alertaCusto }: { p: Painel; atual: boolean; alertaCusto: number | null }) {
   const e = (n: number) => Number(p.etapas[String(n)] ?? 0);
   const receita = Number(p.receita) || 0;
   const custo = Number(p.custo) || 0;
@@ -88,8 +98,19 @@ function Conteudo({ p, atual }: { p: Painel; atual: boolean }) {
 
   const maxFunil = Math.max(1, ...ETAPAS.map((x) => e(x.n)));
 
+  const passouAlerta = alertaCusto != null && alertaCusto > 0 && custo > alertaCusto;
+
   return (
     <div className="space-y-4">
+      {passouAlerta && (
+        <div role="alert" className="flex items-center gap-2 rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-400">
+          <AlertTriangle size={16} className="shrink-0" />
+          <span>
+            Custo estimado {atual ? 'do mês' : 'deste mês'} ({formatarMoeda(custo)}) passou do alerta de {formatarMoeda(alertaCusto)}.
+            Revise os limites diários em <Link to="/configuracoes" className="underline">Configurações</Link>.
+          </span>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {cards.map((c) => (
           <Link key={c.rotulo} to={c.link} className="card p-4 transition-colors hover:border-marca/50">

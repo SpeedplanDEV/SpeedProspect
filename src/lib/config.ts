@@ -1,3 +1,5 @@
+import { ENDERECO_FUNCOES, enderecoFuncao } from '@shared/enderecos';
+
 // Configuração pública do Supabase (a chave "anon" é pública por definição; o acesso é protegido por RLS)
 const URL_PADRAO = 'https://ruseutthqcknhkqpqmyj.supabase.co';
 const CHAVE_PADRAO =
@@ -10,15 +12,7 @@ export const FUNCOES_URL = `${SUPABASE_URL}/functions/v1`;
 /** URL pública da foto do Google: /api/foto (Vercel) → Edge Function `foto` → 302 para o Google (nunca expõe a API key) */
 export const urlFoto = (name: string, w = 800) => `/api/foto?name=${encodeURIComponent(name)}&w=${w}`;
 
-/**
- * Endereço real de cada Edge Function no Supabase. Funções criadas pelo editor do painel ficam com o
- * endereço sugerido por ele (não dá para renomear depois), então o sistema chama esses endereços diretamente.
- */
-export const ENDERECO_FUNCOES: Record<string, string> = {
-  'gerar-previa': 'quick-handler',
-  track: 'smart-responder',
-  optout: 'super-endpoint',
-};
-export const enderecoFuncao = (nome: string) => ENDERECO_FUNCOES[nome] ?? nome;
+/** Endereço real de cada Edge Function (compartilhado com o pipeline) */
+export { ENDERECO_FUNCOES, enderecoFuncao };
 
 export const fetchFuncao = (nome: string, init: RequestInit) => fetch(`${FUNCOES_URL}/${enderecoFuncao(nome)}`, init);

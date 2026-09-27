@@ -30,14 +30,25 @@ export default function Configuracoes() {
   });
 
   useEffect(() => {
-    if (data) reset({ ...data, negocio_whatsapp: data.negocio_whatsapp ? formatarTelefone(data.negocio_whatsapp) : '' });
+    if (data)
+      reset({
+        ...data,
+        negocio_whatsapp: data.negocio_whatsapp ? formatarTelefone(data.negocio_whatsapp) : '',
+        automacao_ativa: data.automacao_ativa ?? false,
+        alerta_custo_mes: data.alerta_custo_mes ?? 100,
+      });
   }, [data, reset]);
+
+  // Antes do SQL da Fase 7 as colunas de automação não existem: não envia esses campos
+  const temFase7 = !!data && 'automacao_ativa' in data;
 
   const salvar = useMutation({
     mutationFn: async (dados: ConfiguracoesDados) => {
+      const { automacao_ativa, alerta_custo_mes, ...basicos } = dados;
+      const campos = temFase7 ? { ...basicos, automacao_ativa, alerta_custo_mes } : basicos;
       const { data, error } = await supabase
         .from('configuracoes')
-        .update({ ...dados, atualizado_em: new Date().toISOString() })
+        .update({ ...campos, atualizado_em: new Date().toISOString() })
         .eq('id', 1)
         .select()
         .single();
@@ -175,6 +186,41 @@ export default function Configuracoes() {
                 />
               </div>
             </div>
+          </section>
+          <section className="card p-5">
+            <h2 className="mb-1 text-sm font-medium">Automação e custos</h2>
+            <p className="mb-4 text-xs text-suave">
+              Todo dia: 03:00 coleta, 03:30 qualificação, 04:00–05:50 prévias com IA e 08:00 follow-ups (horário de Brasília).
+              Nada é enviado pelo WhatsApp sem o seu clique. Acompanhe em Execuções.
+            </p>
+            {!temFase7 && (
+              <p className="mb-4 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                Rode o SQL 20261002000000_fase7_automacao.sql no Supabase para liberar estas opções.
+              </p>
+            )}
+            <fieldset disabled={!temFase7} className="grid gap-4 disabled:opacity-60 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <Controller
+                  control={control}
+                  name="automacao_ativa"
+                  render={({ field }) => (
+                    <Switch
+                      id="automacao_ativa"
+                      marcado={!!field.value}
+                      aoMudar={field.onChange}
+                      rotulo="Rodar o pipeline automaticamente todo dia"
+                      descricao="Exige o SQL da Fase 7, a função pipeline publicada e os segredos no Vault (veja o README)."
+                    />
+                  )}
+                />
+              </div>
+              <div>
+                <label className="label" htmlFor="alerta_custo_mes">Alerta de custo no mês (R$)</label>
+                <input id="alerta_custo_mes" type="number" step="0.01" min="0" className="input" {...register('alerta_custo_mes')} />
+                <p className="mt-1 text-xs text-fraco">O Dashboard avisa quando o custo estimado (Google + IA) passar deste valor.</p>
+                <CampoErro msg={e.alerta_custo_mes?.message} />
+              </div>
+            </fieldset>
           </section>
         </form>
       )}

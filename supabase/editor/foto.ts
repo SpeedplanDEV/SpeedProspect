@@ -27,7 +27,7 @@ function admin(): SupabaseClient {
 /**
  * Funções administrativas aceitam:
  *  - Authorization: Bearer <SERVICE_ROLE_KEY> (cron / pipeline)
- *  - Authorization: Bearer <JWT do operador logado> (botão "Executar agora")
+ *  - Authorization: Bearer <JWT do operador logado> (botão "Executar agora"), se o e-mail estiver em `operadores`
  */
 async function autorizarAdmin(req: Request, db: SupabaseClient): Promise<string | null> {
   const token = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '').trim();
@@ -36,6 +36,10 @@ async function autorizarAdmin(req: Request, db: SupabaseClient): Promise<string 
   if (service && token === service) return 'service_role';
   const { data, error } = await db.auth.getUser(token);
   if (error || !data.user) return null;
+  // Só operadores cadastrados (tabela `operadores`, Fase 7). Lista vazia ou tabela ainda inexistente = libera.
+  const { data: ops, error: eOps } = await db.from('operadores').select('email').limit(500);
+  const email = (data.user.email ?? '').toLowerCase();
+  if (!eOps && ops?.length && !ops.some((o) => o.email === email)) return null;
   return data.user.email ?? data.user.id;
 }
 

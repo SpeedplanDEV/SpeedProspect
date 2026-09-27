@@ -34,6 +34,11 @@ export const configuracoesSchema = z.object({
   prospectar_site_ok: z.boolean(),
   modelo_ia: z.string().trim().min(1, 'Informe o modelo'),
   preco_texto: z.string().trim().min(1, 'Informe o texto de preço'),
+  automacao_ativa: z.boolean(),
+  alerta_custo_mes: z.coerce
+    .number({ invalid_type_error: 'Informe um valor' })
+    .min(0, 'Mínimo R$ 0')
+    .max(100000, 'Valor muito alto'),
 });
 export type ConfiguracoesForm = z.input<typeof configuracoesSchema>;
 export type ConfiguracoesDados = z.output<typeof configuracoesSchema>;

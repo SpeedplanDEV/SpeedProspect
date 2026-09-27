@@ -8,6 +8,7 @@ import { Badge, Erro, Pagina, Vazio } from '@/components/ui/Pagina';
 import { Drawer } from '@/components/ui/Drawer';
 import { useToast } from '@/components/ui/Toast';
 import { useGerarPrevias } from '@/components/useGerarPrevias';
+import { PainelAutomacao } from '@/components/PainelAutomacao';
 import {
   chamarFuncao, textoResumoColeta, textoResumoQualificacao, type ResumoColeta, type ResumoQualificacao,
 } from '@/lib/funcoes';
@@ -113,6 +114,7 @@ export default function Execucoes() {
         <Erro erro={error} />
       ) : (
         <>
+          <PainelAutomacao />
           <div className="card overflow-x-auto">
             <table className="tabela">
               <thead>
