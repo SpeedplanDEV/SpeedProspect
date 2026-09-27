@@ -223,7 +223,9 @@ pg_cron (UTC)            → sp_chamar_pipeline(etapa)  → pg_net POST → Edge
   migration). Segredos só no Vault / Edge Function secrets. `track`, `optout` e `foto` são públicas com limite por IP.
 
 ### Setup da Fase 7
-1. Rode `supabase/migrations/20261002000000_fase7_automacao.sql` no SQL Editor.
+1. Rode `supabase/migrations/20261002000000_fase7_automacao.sql` no SQL Editor (depende das Fases 5 e 6).
+   Se alguma fase anterior ficou para trás, rode `supabase/sql/pendente_fases_5_a_7.sql`: junta tudo o que vem
+   depois da Fase 4 num arquivo só e pode ser executado mais de uma vez.
 2. Publique a função `pipeline` (Edge Functions → Deploy a new function → Via Editor → nome `pipeline` → cole
    `supabase/editor/pipeline.ts` → Deploy). Em Details, desligue **Verify JWT** (opcional; com ele ligado também funciona).
 3. Grave os segredos no Vault (SQL Editor). A chave é a **service_role** em Settings → API Keys → Legacy API keys:

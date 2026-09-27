@@ -10,7 +10,7 @@ alter table configuracoes add column if not exists alerta_custo_mes numeric(10,2
 -- O pipeline (service role) também agenda follow-ups
 do $$ begin
   grant execute on function agendar_followups() to service_role;
-exception when undefined_object then null; end $$;
+exception when undefined_object or undefined_function then null; end $$;
 
 -- Grava/atualiza um segredo no Vault (só pelo SQL Editor; ninguém do app executa)
 create or replace function sp_definir_segredo(p_nome text, p_valor text) returns text
@@ -105,6 +105,7 @@ declare t text;
 begin
   foreach t in array array['configuracoes', 'campanhas', 'leads', 'sites', 'mensagens', 'eventos', 'bloqueios',
                            'execucoes', 'buscas_cache', 'historico_status'] loop
+    continue when to_regclass('public.' || t) is null; -- tabela de fase ainda não aplicada
     execute format('alter table %I enable row level security', t);
     execute format('drop policy if exists auth_total on %I', t);
     execute format('drop policy if exists operador_total on %I', t);
