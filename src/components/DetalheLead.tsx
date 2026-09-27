@@ -10,6 +10,7 @@ import {
 } from '@/lib/types';
 import { Badge } from '@/components/ui/Pagina';
 import { Drawer } from '@/components/ui/Drawer';
+import { PreviaLead } from '@/components/PreviaLead';
 import { useToast } from '@/components/ui/Toast';
 
 const ROTULO_EVENTO: Record<string, string> = {
@@ -157,6 +158,10 @@ export function DetalheLead({ leadId, aoFechar, nomeCampanha }: {
             <label className="label" htmlFor="obs-lead">Observações</label>
             <textarea id="obs-lead" className="input min-h-[80px]" value={obs} onChange={(e) => setObs(e.target.value)} />
           </div>
+
+          <Secao titulo="Prévia (landing page)">
+            <PreviaLead lead={l} />
+          </Secao>
 
           <Secao titulo="Dados do Google">
             <ul className="space-y-1.5 text-sm">

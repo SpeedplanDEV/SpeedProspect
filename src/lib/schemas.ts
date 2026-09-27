@@ -3,8 +3,8 @@ import { somenteDigitos } from './format';
 
 // Modelos de IA disponíveis (confirmar nomes em https://docs.claude.com/en/docs/about-claude/models)
 export const MODELOS_IA = [
-  { valor: 'claude-sonnet-5', rotulo: 'Claude Sonnet 5 (padrão)' },
-  { valor: 'claude-haiku-4-5-20251001', rotulo: 'Claude Haiku 4.5 (econômico)' },
+  { valor: 'claude-sonnet-5', rotulo: 'Claude Sonnet 5 — melhor texto (US$ 2 / US$ 10 por milhão de tokens)' },
+  { valor: 'claude-haiku-4-5', rotulo: 'Claude Haiku 4.5 — econômico (US$ 1 / US$ 5 por milhão de tokens)' },
 ] as const;
 
 const inteiro = (min: number, max: number) =>

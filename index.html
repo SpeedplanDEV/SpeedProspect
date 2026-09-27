@@ -9,8 +9,9 @@
     <script>
       // Aplica o tema salvo antes da renderização para evitar flash
       try {
+        var publica = /^\/(p|optout|demo)(\/|$)/.test(location.pathname);
         var t = localStorage.getItem('sp-tema');
-        if (t === 'dark' || t === 'night') document.documentElement.dataset.tema = t;
+        if (!publica && (t === 'dark' || t === 'night')) document.documentElement.dataset.tema = t;
       } catch (e) {}
     </script>
   </head>

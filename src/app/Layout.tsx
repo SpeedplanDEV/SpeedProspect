@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import {
-  Activity, CheckSquare, Columns3, LayoutDashboard, LogOut, Megaphone, Moon, Send, Settings, Sun,
+  Activity, CheckSquare, Columns3, LayoutDashboard, LayoutTemplate, LogOut, Megaphone, Moon, Send, Settings, Sun,
   SunMoon, Users, Zap,
 } from 'lucide-react';
 import { useAuth } from './auth';
@@ -50,6 +50,10 @@ export default function Layout() {
               {rotulo}
             </NavLink>
           ))}
+          <a href="/demo/saude" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-suave transition-colors hover:bg-elevado hover:text-texto">
+            <LayoutTemplate size={16} />
+            Modelos de página
+          </a>
         </nav>
         <div className="space-y-1 border-t border-borda p-2">
           <button onClick={alternar} className="btn-fantasma w-full justify-start" title="Alternar tema">

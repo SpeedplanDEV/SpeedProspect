@@ -3,7 +3,7 @@
 Sistema interno de prospecção: busca empresas no Google Maps (Places API New), qualifica,
 gera uma landing page de prévia com a Claude API e prepara a abordagem por WhatsApp (envio com 1 clique pelo operador).
 
-> Status: **Fase 3 — Qualificação** (checagem de site, score 0–100, descartes automáticos).
+> Status: **Fase 4 — Prévias com IA** (Claude API, 5 templates por nicho, rota pública, tracking e opt-out).
 > O README completo de operação é entregue na Fase 7.
 
 ## Requisitos
@@ -101,3 +101,38 @@ Regras puras em `supabase/functions/_shared/qualificacao.ts` (as mesmas usadas p
 ### Deploy pelo editor do painel
 Sem CLI/token, gere os arquivos únicos com `node scripts/gerar-editor.mjs` e cole `supabase/editor/<função>.ts`
 em Edge Functions → Deploy a new function → Via Editor (nome da função = nome do arquivo).
+
+## Fase 4 — Prévias com IA, templates e página pública
+
+### Geração (`gerar-previa`)
+- Processa leads `qualificado` sem prévia (maior score primeiro) até `limite_geracoes_dia`; com `lead_id` gera um lead
+  específico e com `regenerar: true` cria a versão seguinte (mesmo slug e mesmos links). Aceita `instrucao_extra`.
+- **Claude API** via `fetch` (`_shared/anthropic.ts`): `tool_choice` forçado na ferramenta `gerar_conteudo_lp`
+  (`strict: true`), system prompt estável com cache de prompt, retry com backoff em 429/5xx, custo em R$ por prévia
+  (preços em `PRECOS_MTOK`; cotação no secret `COTACAO_DOLAR`).
+- **A IA só escreve os textos.** Nome, endereço, telefone, nota, número de avaliações, horários e autor/nota/data dos
+  depoimentos vêm dos dados reais do Google (`_shared/previa.ts`). Depoimentos só de avaliações reais com nota ≥ 4.
+- Validação zod (`_shared/schemas.ts`); erros voltam para a IA corrigir (até 2 tentativas). Leads com 2 falhas saem
+  do lote automático (`leads.falhas_previa`).
+- Com **Aprovar prévias automaticamente** ligado: publica, cria a mensagem de primeiro contato e marca `aprovado`.
+
+### Templates (`src/templates`)
+Cinco identidades visuais (saúde, alimentação, automotivo, beleza, serviços), mobile-first, fotos reais pela função
+`foto`, atribuição do Google e link de opt-out no rodapé. Veja todos em `/demo/saude` (menu **Modelos de página**).
+Lighthouse mobile nos modelos: desempenho 99, acessibilidade 100, boas práticas 100.
+
+### Página pública
+- `/p/:slug?k=<token>`: barra fixa "Prévia criada especialmente para…" + botão **Quero esse site** (WhatsApp do
+  operador); título/description do SEO; `noindex` (as prévias não aparecem no Google). Rascunhos só abrem com o token.
+  `&interno=1` = visualização do operador, sem rastreio.
+- `track` (pública): 1 visita por sessão por dia; visita pelo link enviado muda o lead `enviado` → `abriu`;
+  "Quero esse site" promove para `abriu`.
+- `/optout/:token` + função `optout`: com um clique de confirmação despublica a prévia, marca `nao_contatar`, bloqueia
+  place_id/telefone e apaga mensagens pendentes.
+
+### Setup da Fase 4
+1. Rode `supabase/migrations/20260927000000_fase4_previas.sql` no SQL Editor.
+2. Crie uma chave em https://console.anthropic.com (API Keys) e adicione créditos. No Supabase → Edge Functions →
+   Secrets: `ANTHROPIC_API_KEY`.
+3. Publique `gerar-previa`, `track` e `optout` (GitHub Actions ou editor: `supabase/editor/*.ts`).
+4. Em Configurações do painel: **URL pública do app** (ex.: `https://speed-prospect-silk.vercel.app`), WhatsApp e nome do negócio.

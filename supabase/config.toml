@@ -11,3 +11,12 @@ verify_jwt = false
 
 [functions.qualificar]
 verify_jwt = false
+
+[functions.gerar-previa]
+verify_jwt = false
+
+[functions.track]
+verify_jwt = false
+
+[functions.optout]
+verify_jwt = false

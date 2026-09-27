@@ -1,9 +1,7 @@
 import { FunctionsHttpError } from '@supabase/supabase-js';
-import { supabase, supabaseUrl } from './supabase';
+import { supabase } from './supabase';
 
-/** URL pública da foto do Google via Edge Function `foto` (nunca expõe a API key) */
-export const urlFoto = (name: string, w = 800) =>
-  `${supabaseUrl}/functions/v1/foto?name=${encodeURIComponent(name)}&w=${w}`;
+export { urlFoto } from './config';
 
 /** Chama uma Edge Function administrativa com o JWT do operador logado */
 export async function chamarFuncao<T = unknown>(nome: string, corpo: Record<string, unknown> = {}): Promise<T> {
@@ -48,4 +46,24 @@ export function textoResumoQualificacao(r: ResumoQualificacao): string {
   if (!r.processados) return 'Nenhum lead novo para qualificar.';
   const resto = r.restantes ? ` ${r.restantes} ficaram para a próxima rodada.` : '';
   return `Qualificação: ${r.qualificados ?? 0} qualificado(s), ${r.descartados ?? 0} descartado(s).${resto}`;
+}
+
+export interface ResumoGeracao {
+  ok: boolean;
+  erro?: string;
+  gerados: number;
+  falhas: number;
+  restantes: number | null;
+  limite_atingido: boolean;
+  custo_brl?: number;
+  resultados: { lead_id: string; nome: string; ok: boolean; erro?: string; slug?: string }[];
+}
+
+export function textoResumoGeracao(r: ResumoGeracao): string {
+  if (r.limite_atingido && !r.gerados) return 'Limite diário de gerações de IA atingido. Ajuste em Configurações ou tente amanhã.';
+  if (!r.gerados && !r.falhas) return 'Nenhum lead qualificado aguardando prévia.';
+  const partes = [`${r.gerados} prévia(s) gerada(s)`];
+  if (r.falhas) partes.push(`${r.falhas} falha(s)`);
+  if (r.erro && !r.gerados) partes.push(r.erro);
+  return partes.join(' · ');
 }

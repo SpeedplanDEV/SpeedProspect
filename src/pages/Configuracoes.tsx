@@ -84,7 +84,10 @@ export default function Configuracoes() {
               <div className="sm:col-span-2">
                 <label className="label" htmlFor="app_url">URL pública do app</label>
                 <input id="app_url" className="input" placeholder="https://prospect.seudominio.com.br" {...register('app_url')} />
-                <p className="mt-1 text-xs text-fraco">Usada para montar o link das prévias: {'{app_url}'}/p/slug</p>
+                <p className="mt-1 text-xs text-fraco">
+                  Usada para montar o link das prévias: {'{app_url}'}/p/slug. Sem ela, as mensagens não têm link.
+                  {typeof window !== 'undefined' && ` Sugestão: ${window.location.origin}`}
+                </p>
                 <CampoErro msg={e.app_url?.message} />
               </div>
               <div className="sm:col-span-2">
@@ -136,6 +139,7 @@ export default function Configuracoes() {
                     <option value={data.modelo_ia}>{data.modelo_ia}</option>
                   )}
                 </select>
+                <p className="mt-1 text-xs text-fraco">A chave da IA fica no Supabase (Edge Functions → Secrets → ANTHROPIC_API_KEY), nunca aqui.</p>
                 <CampoErro msg={e.modelo_ia?.message} />
               </div>
               <div className="sm:col-span-2 space-y-4 pt-1">

@@ -156,3 +156,23 @@ export interface Mensagem {
   enviada_em: string | null;
   criado_em: string;
 }
+
+export interface Site {
+  id: string;
+  lead_id: string;
+  slug: string;
+  template: string;
+  conteudo: import('@shared/conteudo').ConteudoLP;
+  token_acesso: string;
+  token_optout: string;
+  publicado: boolean;
+  versao: number;
+  modelo_ia: string | null;
+  tokens_entrada: number | null;
+  tokens_saida: number | null;
+  custo_estimado: number | null;
+  instrucao_extra: string | null;
+  criado_em: string;
+  atualizado_em: string;
+  publicado_em: string | null;
+}

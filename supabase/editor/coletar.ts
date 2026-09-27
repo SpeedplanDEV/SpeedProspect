@@ -135,6 +135,11 @@ function montarConsultas(c: { termos_busca: string[]; bairros: string[]; cidade:
   return [...new Set(out)];
 }
 
+// ===== _shared/custos.ts =====
+// Conversão de custos para R$ (cotação ajustável pelo secret COTACAO_DOLAR; padrão 5,50)
+const cotacaoDolar = () => Number(Deno.env.get('COTACAO_DOLAR') ?? '5.50') || 5.5;
+const paraReais = (usd: number) => Math.round(usd * cotacaoDolar() * 10000) / 10000;
+
 // ===== _shared/places.ts =====
 // Cliente da Google Places API (New) — somente Text Search oficial. Nada de scraping.
 const PLACES_URL = 'https://places.googleapis.com/v1/places:searchText';
@@ -156,8 +161,6 @@ const PRECO_USD = {
   text_search_enterprise_atmosphere: 0.04,
   foto: 0.007,
 };
-/** Cotação usada para registrar custos em R$ (ajuste via secret COTACAO_DOLAR) */
-const cotacaoDolar = () => Number(Deno.env.get('COTACAO_DOLAR') ?? '5.50') || 5.5;
 const custoBuscaBRL = () => PRECO_USD.text_search_enterprise_atmosphere * cotacaoDolar();
 
 interface PlaceBruto {

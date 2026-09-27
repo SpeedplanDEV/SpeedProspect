@@ -5,9 +5,11 @@ import path from 'node:path';
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: {
-      '@shared': path.resolve(__dirname, 'supabase/functions/_shared'),
-      '@': path.resolve(__dirname, 'src'),
-    },
+    alias: [
+      { find: '@shared', replacement: path.resolve(__dirname, 'supabase/functions/_shared') },
+      { find: '@', replacement: path.resolve(__dirname, 'src') },
+      // Arquivos compartilhados com as Edge Functions importam o zod no formato do Deno
+      { find: /^npm:zod@3$/, replacement: 'zod' },
+    ],
   },
 });

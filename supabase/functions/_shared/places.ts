@@ -1,5 +1,6 @@
 // Cliente da Google Places API (New) — somente Text Search oficial. Nada de scraping.
 import { ehCelular, extrairBairro, extrairCidade, telefoneE164, type ComponenteEndereco } from './normalizar.ts';
+import { cotacaoDolar } from './custos.ts';
 
 export const PLACES_URL = 'https://places.googleapis.com/v1/places:searchText';
 
@@ -20,8 +21,6 @@ export const PRECO_USD = {
   text_search_enterprise_atmosphere: 0.04,
   foto: 0.007,
 };
-/** Cotação usada para registrar custos em R$ (ajuste via secret COTACAO_DOLAR) */
-export const cotacaoDolar = () => Number(Deno.env.get('COTACAO_DOLAR') ?? '5.50') || 5.5;
 export const custoBuscaBRL = () => PRECO_USD.text_search_enterprise_atmosphere * cotacaoDolar();
 
 export interface PlaceBruto {

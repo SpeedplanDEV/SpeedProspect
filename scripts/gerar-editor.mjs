@@ -5,7 +5,7 @@ import { dirname, join, resolve } from 'node:path';
 
 const RAIZ = resolve('supabase/functions');
 const SAIDA = resolve('supabase/editor');
-const FUNCOES = ['coletar', 'foto', 'qualificar'];
+const FUNCOES = ['coletar', 'foto', 'qualificar', 'gerar-previa', 'track', 'optout'];
 
 function montar(nome) {
   const vistos = new Set();

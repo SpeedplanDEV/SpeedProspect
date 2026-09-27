@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, Loader2, Search, ShieldCheck, Smartphone } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Search, ShieldCheck, Smartphone, Wand2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatarNumero, formatarTelefone } from '@/lib/format';
 import { NICHOS, STATUS_FUNIL, STATUS_SITE, rotuloNicho, statusFunil, type Campanha, type Lead } from '@/lib/types';
 import { Badge, Erro, Pagina, Vazio } from '@/components/ui/Pagina';
 import { DetalheLead } from '@/components/DetalheLead';
 import { useToast } from '@/components/ui/Toast';
+import { useGerarPrevias } from '@/components/useGerarPrevias';
 import { chamarFuncao, textoResumoQualificacao, type ResumoQualificacao } from '@/lib/funcoes';
 import { resumoDetalheSite, rotuloDescarte } from '@/lib/qualificacao';
 
@@ -41,6 +42,16 @@ export default function Leads() {
       return count ?? 0;
     },
   });
+
+  const qualificados = useQuery({
+    queryKey: ['leads', 'contagem-qualificados'],
+    queryFn: async () => {
+      const { count, error } = await supabase.from('leads').select('id', { count: 'exact', head: true }).eq('status_funil', 'qualificado');
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+  const previas = useGerarPrevias();
 
   const qualificar = useMutation({
     mutationFn: () => chamarFuncao<ResumoQualificacao>('qualificar', {}),
@@ -98,6 +109,16 @@ export default function Leads() {
       titulo="Leads"
       descricao={`${formatarNumero(total)} empresa(s) encontrada(s)`}
       acoes={
+        <>
+        <button
+          className="btn-secundario"
+          disabled={previas.gerando || !qualificados.data}
+          onClick={previas.gerar}
+          title="Gera com IA a landing page dos leads qualificados (maior score primeiro), respeitando o limite diário"
+        >
+          {previas.gerando ? <Loader2 size={15} className="animate-spin" /> : <Wand2 size={15} />}
+          {previas.gerando ? `Gerando prévias… ${previas.prontas} pronta(s)` : `Gerar prévias (${formatarNumero(qualificados.data ?? 0)})`}
+        </button>
         <button
           className="btn-primario"
           disabled={qualificar.isPending || !novos.data}
@@ -107,6 +128,7 @@ export default function Leads() {
           {qualificar.isPending ? <Loader2 size={15} className="animate-spin" /> : <ShieldCheck size={15} />}
           {qualificar.isPending ? 'Qualificando…' : `Qualificar novos (${formatarNumero(novos.data ?? 0)})`}
         </button>
+        </>
       }
     >
       <div className="mb-3 flex flex-wrap items-center gap-2">

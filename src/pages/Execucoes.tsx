@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Play, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Loader2, Play, RefreshCw, ShieldCheck, Wand2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatarDataHora, formatarDuracao, formatarMoeda, formatarNumero } from '@/lib/format';
 import type { Campanha, EntradaLog, Execucao } from '@/lib/types';
 import { Badge, Erro, Pagina, Vazio } from '@/components/ui/Pagina';
 import { Drawer } from '@/components/ui/Drawer';
 import { useToast } from '@/components/ui/Toast';
+import { useGerarPrevias } from '@/components/useGerarPrevias';
 import {
   chamarFuncao, textoResumoColeta, textoResumoQualificacao, type ResumoColeta, type ResumoQualificacao,
 } from '@/lib/funcoes';
@@ -40,6 +41,8 @@ export default function Execucoes() {
     },
     onError: (e: Error) => toast(e.message, 'erro'),
   });
+
+  const previas = useGerarPrevias();
 
   const qualificar = useMutation({
     mutationFn: () => chamarFuncao<ResumoQualificacao>('qualificar', {}),
@@ -85,6 +88,10 @@ export default function Execucoes() {
           </select>
           <button className="btn-secundario" onClick={() => refetch()} disabled={isFetching}>
             <RefreshCw size={15} className={isFetching ? 'animate-spin' : ''} /> Atualizar
+          </button>
+          <button className="btn-secundario" disabled={previas.gerando} onClick={previas.gerar}>
+            {previas.gerando ? <Loader2 size={15} className="animate-spin" /> : <Wand2 size={15} />}
+            {previas.gerando ? `Gerando… ${previas.prontas}` : 'Gerar prévias'}
           </button>
           <button className="btn-secundario" disabled={qualificar.isPending} onClick={() => qualificar.mutate()}>
             {qualificar.isPending ? <Loader2 size={15} className="animate-spin" /> : <ShieldCheck size={15} />}
