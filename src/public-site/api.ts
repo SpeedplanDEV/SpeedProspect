@@ -1,5 +1,5 @@
 // Acesso público (sem supabase-js, para a página da prévia carregar leve)
-import { FUNCOES_URL, SUPABASE_ANON_KEY, SUPABASE_URL } from '@/lib/config';
+import { fetchFuncao, SUPABASE_ANON_KEY, SUPABASE_URL } from '@/lib/config';
 import type { ConteudoLP } from '@/templates/types';
 
 const cabecalhos = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' };
@@ -32,7 +32,7 @@ export type TipoEvento = 'visita' | 'clique_whatsapp' | 'clique_quero';
 /** Registra evento sem atrapalhar a navegação (keepalive: funciona mesmo abrindo o WhatsApp) */
 export function rastrear(slug: string, token: string | null, tipo: TipoEvento, sessao: string) {
   try {
-    void fetch(`${FUNCOES_URL}/track`, {
+    void fetchFuncao('track', {
       method: 'POST',
       headers: cabecalhos,
       body: JSON.stringify({ slug, token, tipo, sessao }),
@@ -44,7 +44,7 @@ export function rastrear(slug: string, token: string | null, tipo: TipoEvento, s
 }
 
 export async function chamarOptout(token: string, confirmar: boolean): Promise<{ ok?: boolean; nome?: string; ja_removido?: boolean; erro?: string }> {
-  const r = await fetch(`${FUNCOES_URL}/optout`, { method: 'POST', headers: cabecalhos, body: JSON.stringify({ token, confirmar }) });
+  const r = await fetchFuncao('optout', { method: 'POST', headers: cabecalhos, body: JSON.stringify({ token, confirmar }) });
   const corpo = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(corpo?.erro ?? `Erro ${r.status}`);
   return corpo;

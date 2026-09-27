@@ -9,3 +9,24 @@ export const FUNCOES_URL = `${SUPABASE_URL}/functions/v1`;
 
 /** URL pública da foto do Google via Edge Function `foto` (nunca expõe a API key) */
 export const urlFoto = (name: string, w = 800) => `${FUNCOES_URL}/foto?name=${encodeURIComponent(name)}&w=${w}`;
+
+/**
+ * Nomes alternativos das Edge Functions (quando publicadas pelo editor do Supabase com o nome sugerido).
+ * O sistema tenta primeiro o nome oficial e, se não existir (404), o alternativo.
+ */
+export const ALIAS_FUNCOES: Record<string, string> = {
+  'gerar-previa': 'quick-handler',
+  track: 'smart-responder',
+  optout: 'super-endpoint',
+};
+
+/** fetch para uma Edge Function com fallback para o nome alternativo */
+export async function fetchFuncao(nome: string, init: RequestInit): Promise<Response> {
+  const r = await fetch(`${FUNCOES_URL}/${nome}`, init);
+  const alias = ALIAS_FUNCOES[nome];
+  if (r.status === 404 && alias) {
+    const corpo = await r.clone().json().catch(() => null);
+    if (corpo?.code === 'NOT_FOUND') return fetch(`${FUNCOES_URL}/${alias}`, init);
+  }
+  return r;
+}

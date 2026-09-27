@@ -1,11 +1,18 @@
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
+import { ALIAS_FUNCOES } from './config';
+
 export { urlFoto } from './config';
 
 /** Chama uma Edge Function administrativa com o JWT do operador logado */
 export async function chamarFuncao<T = unknown>(nome: string, corpo: Record<string, unknown> = {}): Promise<T> {
-  const { data, error } = await supabase.functions.invoke(nome, { body: corpo });
+  let { data, error } = await supabase.functions.invoke(nome, { body: corpo });
+  // Função publicada com o nome alternativo (editor do Supabase)
+  if (error instanceof FunctionsHttpError && error.context.status === 404 && ALIAS_FUNCOES[nome]) {
+    const det = await error.context.clone().json().catch(() => null);
+    if (det?.code === 'NOT_FOUND') ({ data, error } = await supabase.functions.invoke(ALIAS_FUNCOES[nome], { body: corpo }));
+  }
   if (error) {
     if (error instanceof FunctionsHttpError) {
       const det = await error.context.json().catch(() => null);
