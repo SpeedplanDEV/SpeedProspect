@@ -7,8 +7,8 @@ export const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string | undef
 export const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim() || CHAVE_PADRAO;
 export const FUNCOES_URL = `${SUPABASE_URL}/functions/v1`;
 
-/** URL pública da foto do Google via Edge Function `foto` (nunca expõe a API key) */
-export const urlFoto = (name: string, w = 800) => `${FUNCOES_URL}/foto?name=${encodeURIComponent(name)}&w=${w}`;
+/** URL pública da foto do Google: /api/foto (Vercel) → Edge Function `foto` → 302 para o Google (nunca expõe a API key) */
+export const urlFoto = (name: string, w = 800) => `/api/foto?name=${encodeURIComponent(name)}&w=${w}`;
 
 /**
  * Endereço real de cada Edge Function no Supabase. Funções criadas pelo editor do painel ficam com o
