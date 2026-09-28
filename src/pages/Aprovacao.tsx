@@ -70,13 +70,19 @@ export default function Aprovacao() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
-        .select('*, site:sites(*)')
+        .select('*')
         .eq('status_funil', 'previa_gerada')
         .order('score', { ascending: false })
         .order('reviews_count', { ascending: false })
         .limit(200);
       if (error) throw error;
-      return (data ?? []).map((l) => ({ ...l, site: Array.isArray(l.site) ? l.site[0] ?? null : l.site })) as LeadComSite[];
+      const leads = (data ?? []) as Lead[];
+      if (!leads.length) return [] as LeadComSite[];
+      // Prévias em consulta separada (sem "embed"): funciona mesmo se o banco tiver outras relações entre as tabelas
+      const { data: sites, error: eSites } = await supabase.from('sites').select('*').in('lead_id', leads.map((l) => l.id));
+      if (eSites) throw eSites;
+      const porLead = new Map((sites as Site[]).map((x) => [x.lead_id, x]));
+      return leads.map((l) => ({ ...l, site: porLead.get(l.id) ?? null })) as LeadComSite[];
     },
   });
 

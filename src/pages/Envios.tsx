@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { CalendarClock, Copy, ExternalLink, Loader2, MessageCircle, SkipForward, Star, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { agendarFollowups, linkWhatsApp, type ResumoFollowups, pularMensagem, registrarEnvio, resumoEnvios } from '@/lib/fila';
+import { agendarFollowups, recuperarAprovadasSemMensagem, linkWhatsApp, type ResumoFollowups, pularMensagem, registrarEnvio, resumoEnvios } from '@/lib/fila';
 import { formatarData, formatarNumero, formatarTelefone, paraE164 } from '@/lib/format';
 import { rotuloNicho, type Mensagem } from '@/lib/types';
 import { Badge, Erro, Pagina, Vazio } from '@/components/ui/Pagina';
@@ -69,15 +69,28 @@ export default function Envios() {
   const fila = useQuery({
     queryKey: ['envios', 'fila'],
     queryFn: async () => {
+      // Aprovadas que ficaram sem mensagem (ex.: aprovação automática sem URL do app) ganham a mensagem agora
+      await recuperarAprovadasSemMensagem().catch(() => 0);
       const { data, error } = await supabase
         .from('mensagens')
-        .select('*, lead:leads!inner(id,nome,telefone,telefone_celular,score,status_funil,nicho,bairro,cidade,rating,reviews_count)')
+        .select('*')
         .eq('status', 'pendente')
         .lte('agendada_para', hojeSP())
-        .not('lead.status_funil', 'in', '(nao_contatar,descartado,perdido)')
         .limit(500);
       if (error) throw error;
-      return ((data ?? []) as ItemFila[]).sort((a, b) => b.lead.score - a.lead.score || a.criado_em.localeCompare(b.criado_em));
+      const msgs = (data ?? []) as Mensagem[];
+      if (!msgs.length) return [] as ItemFila[];
+      // Leads em consulta separada (sem "embed"), para funcionar com qualquer relação entre as tabelas
+      const { data: leads, error: eLeads } = await supabase
+        .from('leads')
+        .select('id,nome,telefone,telefone_celular,score,status_funil,nicho,bairro,cidade,rating,reviews_count')
+        .in('id', [...new Set(msgs.map((m) => m.lead_id))]);
+      if (eLeads) throw eLeads;
+      const porId = new Map((leads as LeadEnvio[]).map((l) => [l.id, l]));
+      return msgs
+        .map((m) => ({ ...m, lead: porId.get(m.lead_id)! }))
+        .filter((m) => m.lead && !['nao_contatar', 'descartado', 'perdido'].includes(m.lead.status_funil))
+        .sort((a, b) => b.lead.score - a.lead.score || a.criado_em.localeCompare(b.criado_em));
     },
   });
 

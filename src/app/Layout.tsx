@@ -38,12 +38,7 @@ function useContadores() {
       const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
       const [aprovacao, envios] = await Promise.all([
         supabase.from('leads').select('id', { count: 'exact', head: true }).eq('status_funil', 'previa_gerada'),
-        supabase
-          .from('mensagens')
-          .select('id, lead:leads!inner(id)', { count: 'exact', head: true })
-          .eq('status', 'pendente')
-          .lte('agendada_para', hoje)
-          .not('lead.status_funil', 'in', '(nao_contatar,descartado,perdido)'),
+        supabase.from('mensagens').select('id', { count: 'exact', head: true }).eq('status', 'pendente').lte('agendada_para', hoje),
       ]);
       return { aprovacao: aprovacao.count ?? 0, envios: envios.count ?? 0 } as Record<string, number>;
     },

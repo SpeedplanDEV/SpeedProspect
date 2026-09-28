@@ -101,3 +101,30 @@ export interface Painel {
 }
 
 export const painelDashboard = (mes?: string) => rpc<Painel>('painel_dashboard', mes ? { p_mes: mes } : {});
+
+/**
+ * Leads "aprovado" sem mensagem de primeiro contato (acontecia na aprovação automática sem a URL do app):
+ * cria a mensagem agora, com o endereço do painel como URL. Devolve quantas foram recuperadas.
+ */
+export async function recuperarAprovadasSemMensagem(): Promise<number> {
+  const { data: aprovados, error } = await supabase.from('leads').select('*').eq('status_funil', 'aprovado').limit(200);
+  if (error || !aprovados?.length) return 0;
+  const ids = aprovados.map((l) => l.id as string);
+  const [{ data: msgs }, { data: sites }] = await Promise.all([
+    supabase.from('mensagens').select('lead_id').eq('tipo', 'primeiro_contato').in('lead_id', ids),
+    supabase.from('sites').select('lead_id,slug,token_acesso').in('lead_id', ids),
+  ]);
+  const comMensagem = new Set((msgs ?? []).map((m) => m.lead_id as string));
+  const sitePorLead = new Map((sites ?? []).map((s) => [s.lead_id as string, s as Pick<Site, 'slug' | 'token_acesso'>]));
+  const faltando = (aprovados as Lead[]).filter((l) => !comMensagem.has(l.id) && sitePorLead.has(l.id));
+  if (!faltando.length) return 0;
+  const cfg = await carregarConfigMensagem();
+  let n = 0;
+  for (const l of faltando) {
+    try {
+      await aprovarPrevia(l.id, mensagemPrimeiroContato(l, sitePorLead.get(l.id)!, cfg));
+      n++;
+    } catch { /* segue para o próximo */ }
+  }
+  return n;
+}

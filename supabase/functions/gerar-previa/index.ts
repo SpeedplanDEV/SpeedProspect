@@ -319,12 +319,13 @@ async function salvarPrevia(
   if (!site) throw new Error('Não foi possível reservar um endereço (slug) para a prévia.');
 
   // Auto-aprovação: publica, cria a mensagem de primeiro contato e marca "aprovado"
-  const podeAprovar = cfg.auto_aprovar && lead.status_funil === 'qualificado';
+  // Sem a URL do app não há link para a mensagem: a prévia fica na tela de Aprovação (nunca "aprovado" sem mensagem)
+  const appUrl = cfg.app_url || Deno.env.get('APP_URL') || '';
+  const podeAprovar = cfg.auto_aprovar && lead.status_funil === 'qualificado' && !!appUrl;
   let aprovado = false;
   if (podeAprovar) {
-    const appUrl = cfg.app_url || Deno.env.get('APP_URL') || '';
     await db.from('sites').update({ publicado: true, publicado_em: new Date().toISOString() }).eq('id', site.id);
-    if (appUrl) {
+    {
       const texto = textoMensagem('primeiro_contato', {
         lead_id: lead.id,
         nome: lead.nome,
