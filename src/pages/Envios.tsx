@@ -8,10 +8,13 @@ import { formatarData, formatarNumero, formatarTelefone, paraE164 } from '@/lib/
 import { rotuloNicho, type Mensagem } from '@/lib/types';
 import { Badge, Erro, Pagina, Vazio } from '@/components/ui/Pagina';
 import { useToast } from '@/components/ui/Toast';
+import { BotaoRanking } from '@/components/RankingGoogle';
 
 interface LeadEnvio {
   id: string;
   nome: string;
+  place_id: string;
+  campanha_id: string | null;
   telefone: string | null;
   telefone_celular: boolean;
   score: number;
@@ -100,7 +103,7 @@ export default function Envios() {
       // Leads em consulta separada (sem "embed"), para funcionar com qualquer relação entre as tabelas
       const { data: leads, error: eLeads } = await supabase
         .from('leads')
-        .select('id,nome,telefone,telefone_celular,score,status_funil,nicho,bairro,cidade,rating,reviews_count')
+        .select('id,nome,place_id,campanha_id,telefone,telefone_celular,score,status_funil,nicho,bairro,cidade,rating,reviews_count')
         .in('id', [...new Set(msgs.map((m) => m.lead_id))]);
       if (eLeads) throw eLeads;
       const porId = new Map((leads as LeadEnvio[]).map((l) => [l.id, l]));
@@ -378,6 +381,7 @@ function ItemEnvio({ item, bloqueado, aoPopupBloqueado }: {
           {enviar.isPending ? <Loader2 size={15} className="animate-spin" /> : <MessageCircle size={15} />} Abrir WhatsApp
         </button>
         <button className="btn-secundario" onClick={copiar}><Copy size={15} /> Copiar</button>
+        {item.tipo === 'primeiro_contato' && <BotaoRanking lead={lead} className="btn-secundario col-span-2 md:col-span-1" />}
         {!pulando ? (
           <button className="btn-fantasma" onClick={() => setPulando(true)} disabled={ocupado}><SkipForward size={15} /> Pular</button>
         ) : (

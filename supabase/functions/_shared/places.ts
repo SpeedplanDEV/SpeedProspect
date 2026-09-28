@@ -55,7 +55,12 @@ export interface RespostaBusca {
 }
 
 /** Uma página do Text Search. Tenta 3 vezes com backoff em erros 429/5xx/rede. */
-export async function buscarPagina(textQuery: string, pageToken?: string): Promise<RespostaBusca> {
+/** Campos mínimos para a posição no Google (mais barato que a coleta completa) */
+export const FIELD_MASK_RANKING = [
+  'places.id', 'places.displayName', 'places.rating', 'places.userRatingCount', 'places.formattedAddress', 'nextPageToken',
+].join(',');
+
+export async function buscarPagina(textQuery: string, pageToken?: string, fieldMask = FIELD_MASK): Promise<RespostaBusca> {
   const chave = Deno.env.get('GOOGLE_PLACES_API_KEY');
   if (!chave) throw new Error('Secret GOOGLE_PLACES_API_KEY não configurado');
   const corpo: Record<string, unknown> = { textQuery, languageCode: 'pt-BR', regionCode: 'BR', pageSize: 20 };
@@ -67,7 +72,7 @@ export async function buscarPagina(textQuery: string, pageToken?: string): Promi
     try {
       const r = await fetch(PLACES_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': chave, 'X-Goog-FieldMask': FIELD_MASK },
+        headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': chave, 'X-Goog-FieldMask': fieldMask },
         body: JSON.stringify(corpo),
       });
       if (r.ok) return (await r.json()) as RespostaBusca;

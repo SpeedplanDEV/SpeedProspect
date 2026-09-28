@@ -14,6 +14,7 @@ import { Badge, Erro, Pagina, Vazio } from '@/components/ui/Pagina';
 import { PreviaFrame } from '@/components/PreviaFrame';
 import { ErroTela } from '@/components/ErroTela';
 import { useToast } from '@/components/ui/Toast';
+import { BotaoRanking } from '@/components/RankingGoogle';
 
 type LeadComSite = Lead & { site: Site | null };
 
@@ -409,6 +410,7 @@ function CartaoAprovacao({ lead, posicao, total, cfg, aoNavegar, aoConcluir, aoA
           </div>
         </div>
         <div className="flex items-center gap-1 text-xs text-suave">
+          <BotaoRanking lead={lead} className="btn-secundario mr-1 px-2 py-1 text-xs" />
           <button className="btn-fantasma px-2" onClick={() => aoNavegar(-1)} disabled={posicao <= 1} aria-label="Anterior">
             <ChevronLeft size={16} />
           </button>

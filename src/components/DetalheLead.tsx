@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/Pagina';
 import { Drawer } from '@/components/ui/Drawer';
 import { PreviaLead } from '@/components/PreviaLead';
 import { useToast } from '@/components/ui/Toast';
+import { BotaoRanking } from './RankingGoogle';
 
 const ROTULO_EVENTO: Record<string, string> = {
   visita: 'Visitou a prévia',
@@ -128,8 +129,10 @@ export function DetalheLead({ leadId, aoFechar, nomeCampanha }: {
             <Badge cor={statusFunil(l.status_funil).cor}>{statusFunil(l.status_funil).rotulo}</Badge>
             <span className="text-sm text-suave">Score <span className="font-medium text-texto">{l.score}</span></span>
             {l.motivo_descarte && <span className="text-sm text-red-500">Motivo: {rotuloDescarte(l.motivo_descarte)}</span>}
+            <span className="ml-auto" />
+            <BotaoRanking lead={l} className="btn-secundario px-2 py-1 text-xs" />
             <button
-              className="btn-secundario ml-auto px-2 py-1 text-xs"
+              className="btn-secundario px-2 py-1 text-xs"
               disabled={requalificar.isPending}
               onClick={() => requalificar.mutate()}
               title="Checa o site de novo e recalcula o score"

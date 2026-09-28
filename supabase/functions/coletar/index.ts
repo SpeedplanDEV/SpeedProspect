@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
   const { data: hoje, error: eHoje } = await db
     .from('execucoes')
     .select('chamadas_api')
-    .eq('etapa', 'coletar')
+    .in('etapa', ['coletar', 'ranking']) // a consulta de posição no Google usa o mesmo limite
     .gte('iniciado_em', inicioDoDiaSP());
   if (eHoje) return json({ erro: eHoje.message }, 500);
   const usadas = (hoje ?? []).reduce((s, x) => s + (x.chamadas_api ?? 0), 0);

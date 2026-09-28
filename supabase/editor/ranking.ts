@@ -1,4 +1,4 @@
-// SpeedProspect — Edge Function `coletar` (arquivo único para o editor do Supabase)
+// SpeedProspect — Edge Function `ranking` (arquivo único para o editor do Supabase)
 // Gerado por scripts/gerar-editor.mjs a partir de supabase/functions — não edite à mão.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { z } from 'npm:zod@3';
@@ -268,6 +268,47 @@ function placeParaLead(p: PlaceBruto) {
   };
 }
 
+// ===== _shared/ranking.ts =====
+// Posição no Google — lógica pura (usada pela Edge Function `ranking` e pelos testes)
+
+interface ItemRanking {
+  posicao: number;
+  place_id: string;
+  nome: string;
+  rating: number | null;
+  reviews: number;
+  endereco: string | null;
+}
+
+/** Monta a consulta igual à coleta: "termo em Cidade - UF" */
+function consultaRanking(termo: string, cidade: string, uf: string): string {
+  return `${termo.trim()} em ${cidade.trim()}${uf ? ` - ${uf.trim()}` : ''}`;
+}
+
+/** Converte os places das páginas (na ordem do Google) em itens numerados */
+function itensDoRanking(
+  places: { id: string; displayName?: { text?: string }; rating?: number; userRatingCount?: number; formattedAddress?: string }[],
+): ItemRanking[] {
+  const vistos = new Set<string>();
+  const out: ItemRanking[] = [];
+  for (const p of places) {
+    if (!p.id || vistos.has(p.id)) continue;
+    vistos.add(p.id);
+    out.push({
+      posicao: out.length + 1,
+      place_id: p.id,
+      nome: p.displayName?.text?.trim() || 'Sem nome',
+      rating: typeof p.rating === 'number' ? Math.round(p.rating * 10) / 10 : null,
+      reviews: p.userRatingCount ?? 0,
+      endereco: p.formattedAddress ?? null,
+    });
+  }
+  return out;
+}
+
+const posicaoDe = (itens: ItemRanking[], placeId: string): number | null =>
+  itens.find((i) => i.place_id === placeId)?.posicao ?? null;
+
 // ===== _shared/log.ts =====
 type Nivel = 'info' | 'aviso' | 'erro';
 
@@ -321,24 +362,19 @@ class Execucao {
   }
 }
 
-// ===== coletar/index.ts =====
-// Edge Function `coletar` — busca empresas pela Google Places API (New) e grava em `leads`.
-// Regras: cache de 30 dias por place_id e por consulta, respeita limite_buscas_dia, ignora bloqueios (opt-out).
-const MAX_PAGINAS = 3;
-const DIAS_CACHE = 30;
+// ===== ranking/index.ts =====
+// Edge Function `ranking` — posição do lead na busca oficial do Google (Places API Text Search) e concorrentes à frente.
+// Regras: só API oficial (sem scraping), conta no limite diário de buscas, reaproveita consultas dos últimos 7 dias.
+const MAX_PAGINAS = 3; // até 60 empresas
+const DIAS_CACHE = 7;
 
-const Entrada = z.object({ campanha_id: z.string().uuid().optional() }).strict();
-
-interface Campanha {
-  id: string;
-  nome: string;
-  nicho: string;
-  cidade: string;
-  uf: string;
-  termos_busca: string[];
-  bairros: string[];
-  max_leads_execucao: number;
-}
+const Entrada = z
+  .object({
+    lead_id: z.string().uuid(),
+    termo: z.string().trim().min(2).max(80).optional(),
+    atualizar: z.boolean().optional(),
+  })
+  .strict();
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
@@ -350,172 +386,83 @@ Deno.serve(async (req) => {
 
   let entrada: z.infer<typeof Entrada>;
   try {
-    const texto = await req.text();
-    entrada = Entrada.parse(texto ? JSON.parse(texto) : {});
+    entrada = Entrada.parse(await req.json());
   } catch (e) {
     return json({ erro: 'Entrada inválida', detalhe: (e as Error).message }, 400);
   }
 
-  const { data: cfg, error: eCfg } = await db.from('configuracoes').select('limite_buscas_dia').eq('id', 1).single();
-  if (eCfg) return json({ erro: eCfg.message }, 500);
+  const { data: lead, error: eLead } = await db
+    .from('leads')
+    .select('id,nome,place_id,cidade,campanha_id,rating,reviews_count')
+    .eq('id', entrada.lead_id)
+    .single();
+  if (eLead || !lead) return json({ erro: 'Lead não encontrado' }, 404);
 
-  // Buscas já consumidas hoje (cada página do Text Search conta 1)
-  const { data: hoje, error: eHoje } = await db
+  const { data: camp } = lead.campanha_id
+    ? await db.from('campanhas').select('termos_busca,cidade,uf').eq('id', lead.campanha_id).maybeSingle()
+    : { data: null };
+  const termo = entrada.termo || camp?.termos_busca?.[0];
+  if (!termo) return json({ erro: 'Informe o termo de busca (ex.: dentista)' }, 400);
+  const consulta = consultaRanking(termo, camp?.cidade || lead.cidade, camp?.uf ?? '');
+
+  // Consulta recente → não gasta busca
+  if (!entrada.atualizar) {
+    const { data: recente } = await db
+      .from('rankings')
+      .select('*')
+      .eq('lead_id', lead.id)
+      .eq('consulta', consulta)
+      .gte('criado_em', new Date(Date.now() - DIAS_CACHE * 864e5).toISOString())
+      .order('criado_em', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (recente) return json({ ok: true, em_cache: true, lead: { nome: lead.nome, place_id: lead.place_id }, ...recente });
+  }
+
+  // Limite diário de buscas (compartilhado com a coleta)
+  const { data: cfg } = await db.from('configuracoes').select('limite_buscas_dia').eq('id', 1).single();
+  const { data: hoje } = await db
     .from('execucoes')
     .select('chamadas_api')
-    .in('etapa', ['coletar', 'ranking']) // a consulta de posição no Google usa o mesmo limite
+    .in('etapa', ['coletar', 'ranking'])
     .gte('iniciado_em', inicioDoDiaSP());
-  if (eHoje) return json({ erro: eHoje.message }, 500);
   const usadas = (hoje ?? []).reduce((s, x) => s + (x.chamadas_api ?? 0), 0);
-  let restante = Math.max(0, cfg.limite_buscas_dia - usadas);
+  let restante = Math.max(0, (cfg?.limite_buscas_dia ?? 0) - usadas);
+  if (restante <= 0) return json({ erro: 'Limite diário de buscas no Google atingido. Aumente em Configurações ou tente amanhã.' }, 429);
 
-  let q = db.from('campanhas').select('id,nome,nicho,cidade,uf,termos_busca,bairros,max_leads_execucao').eq('ativa', true);
-  if (entrada.campanha_id) q = q.eq('id', entrada.campanha_id);
-  const { data: campanhas, error: eCamp } = await q.order('ultima_execucao', { ascending: true, nullsFirst: true });
-  if (eCamp) return json({ erro: eCamp.message }, 500);
-  if (!campanhas?.length) return json({ erro: 'Nenhuma campanha ativa encontrada' }, 404);
-
-  const resumo: Record<string, unknown>[] = [];
-
-  for (const c of campanhas as Campanha[]) {
-    const ex = await new Execucao(db, 'coletar', c.id).iniciar();
-    ex.log('info', `Início da coleta: ${c.nome}`, { por: quem, buscas_disponiveis: restante });
-    const cont = { novos: 0, atualizados: 0, em_cache: 0, bloqueados: 0, fora_da_cidade: 0, consultas_em_cache: 0 };
-    let limiteAtingido = false;
-
-    try {
-      for (const consulta of montarConsultas(c)) {
-        if (cont.novos >= c.max_leads_execucao) break;
-
-        // Consulta já feita por completo nos últimos 30 dias → não gasta busca
-        const { data: cache } = await db
-          .from('buscas_cache')
-          .select('executada_em')
-          .eq('consulta', consulta)
-          .gte('executada_em', new Date(Date.now() - DIAS_CACHE * 864e5).toISOString())
-          .maybeSingle();
-        if (cache) {
-          cont.consultas_em_cache++;
-          ex.log('info', 'Consulta em cache (30 dias), pulada', { consulta });
-          continue;
-        }
-
-        let token: string | undefined;
-        let paginas = 0;
-        let resultados = 0;
-        let completa = false;
-
-        while (paginas < MAX_PAGINAS) {
-          if (restante <= 0) {
-            limiteAtingido = true;
-            break;
-          }
-          const resp = await buscarPagina(consulta, token);
-          restante--;
-          paginas++;
-          ex.chamadas++;
-          ex.custo += custoBuscaBRL();
-          const places = resp.places ?? [];
-          resultados += places.length;
-          await processarPagina(db, c, places.map(placeParaLead), cont);
-
-          token = resp.nextPageToken;
-          if (!token || paginas === MAX_PAGINAS) {
-            completa = true;
-            break;
-          }
-          if (cont.novos >= c.max_leads_execucao) break;
-          await new Promise((r) => setTimeout(r, 300)); // o nextPageToken leva um instante para valer
-        }
-
-        ex.log('info', `Consulta: ${consulta}`, { paginas, resultados, completa });
-        if (completa) {
-          await db
-            .from('buscas_cache')
-            .upsert({ consulta, executada_em: new Date().toISOString(), paginas, resultados }, { onConflict: 'consulta' });
-        }
-        ex.itens = cont.novos + cont.atualizados;
-        await ex.salvarParcial();
-        if (limiteAtingido) break;
-      }
-
-      if (limiteAtingido) ex.log('aviso', 'Limite diário de buscas atingido — coleta interrompida', { limite: cfg.limite_buscas_dia });
-      ex.log('info', 'Fim da coleta', cont);
-      ex.itens = cont.novos + cont.atualizados;
-      await db.from('campanhas').update({ ultima_execucao: new Date().toISOString() }).eq('id', c.id);
-      await ex.finalizar();
-      resumo.push({ campanha: c.nome, execucao_id: ex.id, buscas: ex.chamadas, custo: ex.custo, ...cont, limite_atingido: limiteAtingido });
-    } catch (e) {
-      const msg = (e as Error).message;
-      ex.log('erro', msg);
-      await ex.finalizar(msg);
-      resumo.push({ campanha: c.nome, execucao_id: ex.id, erro: msg, ...cont });
+  const ex = await new Execucao(db, 'ranking', lead.campanha_id).iniciar();
+  ex.log('info', `Posição no Google: ${lead.nome}`, { por: quem, consulta });
+  try {
+    const places: PlaceBruto[] = [];
+    let token: string | undefined;
+    for (let pagina = 0; pagina < MAX_PAGINAS && restante > 0; pagina++) {
+      const resp = await buscarPagina(consulta, token, FIELD_MASK_RANKING);
+      restante--;
+      ex.chamadas++;
+      ex.custo += custoBuscaBRL();
+      places.push(...(resp.places ?? []));
+      token = resp.nextPageToken;
+      if (!token || places.some((p) => p.id === lead.place_id)) break;
+      await new Promise((r) => setTimeout(r, 300));
     }
 
-    if (limiteAtingido) break;
-  }
-
-  return json({ ok: true, buscas_restantes_hoje: restante, resumo });
-});
-
-type LeadGoogle = ReturnType<typeof placeParaLead>;
-
-async function processarPagina(
-  db: ReturnType<typeof admin>,
-  c: Campanha,
-  itens: LeadGoogle[],
-  cont: Record<string, number>,
-) {
-  if (!itens.length) return;
-  const ids = itens.map((x) => x.place_id);
-  const tels = itens.map((x) => x.telefone).filter((t): t is string => !!t);
-
-  const [bPlace, bTel, existentes] = await Promise.all([
-    db.from('bloqueios').select('place_id').in('place_id', ids),
-    tels.length ? db.from('bloqueios').select('telefone').in('telefone', tels) : Promise.resolve({ data: [], error: null }),
-    db.from('leads').select('id,place_id,places_atualizado_em').in('place_id', ids),
-  ]);
-  for (const r of [bPlace, bTel, existentes]) if (r.error) throw new Error(r.error.message);
-
-  const bloqPlace = new Set((bPlace.data ?? []).map((x) => x.place_id));
-  const bloqTel = new Set((bTel.data ?? []).map((x: { telefone: string }) => x.telefone));
-  const existe = new Map((existentes.data ?? []).map((x) => [x.place_id, x]));
-  const limiteCache = Date.now() - DIAS_CACHE * 864e5;
-  const cidadeCampanha = semAcento(c.cidade);
-
-  const novos: Record<string, unknown>[] = [];
-  for (const item of itens) {
-    const { cidade_google, ...dados } = item;
-    if (bloqPlace.has(dados.place_id) || (dados.telefone && bloqTel.has(dados.telefone))) {
-      cont.bloqueados++;
-      continue;
-    }
-    if (cidade_google && semAcento(cidade_google) !== cidadeCampanha) {
-      cont.fora_da_cidade++;
-      continue;
-    }
-    const atual = existe.get(dados.place_id);
-    if (atual) {
-      if (new Date(atual.places_atualizado_em).getTime() > limiteCache) {
-        cont.em_cache++;
-        continue;
-      }
-      // Cache vencido: atualiza só os dados do Google, sem mexer no funil
-      const { error } = await db.from('leads').update(dados).eq('id', atual.id);
-      if (error) throw new Error(error.message);
-      cont.atualizados++;
-      continue;
-    }
-    if (cont.novos + novos.length >= c.max_leads_execucao) continue;
-    novos.push({ ...dados, campanha_id: c.id, nicho: c.nicho, cidade: c.cidade, status_funil: 'novo', status_site: 'desconhecido' });
-  }
-
-  if (novos.length) {
-    const { data, error } = await db
-      .from('leads')
-      .upsert(novos, { onConflict: 'place_id', ignoreDuplicates: true })
-      .select('id');
+    const itens = itensDoRanking(places);
+    const posicao = posicaoDe(itens, lead.place_id);
+    const { data: salvo, error } = await db
+      .from('rankings')
+      .insert({ lead_id: lead.id, consulta, posicao, total: itens.length, resultados: itens })
+      .select('*')
+      .single();
     if (error) throw new Error(error.message);
-    cont.novos += data?.length ?? 0;
+
+    ex.itens = 1;
+    ex.log('info', posicao ? `Posição ${posicao} de ${itens.length}` : `Fora das ${itens.length} primeiras`, { consulta });
+    await ex.finalizar();
+    return json({ ok: true, em_cache: false, lead: { nome: lead.nome, place_id: lead.place_id }, ...salvo });
+  } catch (e) {
+    const msg = (e as Error).message;
+    ex.log('erro', msg);
+    await ex.finalizar(msg);
+    return json({ erro: msg }, 502);
   }
-}
+});

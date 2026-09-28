@@ -241,6 +241,15 @@ Em **Configurações → Mensagens do WhatsApp** dá para mudar o texto padrão 
 
 Setup: rode `supabase/migrations/20261005000000_modelos_mensagem.sql` no SQL Editor. Para a aprovação automática usar os modelos, republique também a função `quick-handler` com `supabase/editor/gerar-previa.ts`.
 
+## Posição no Google (print dos concorrentes)
+
+Botão **"Posição no Google"** em Leads (detalhe do lead), Aprovação e Envios. Ele consulta a busca oficial do Google (Places API Text Search, a mesma da coleta; sem scraping) com um termo, como "hamburgueria em Campinas - SP", e mostra a posição real da empresa e os concorrentes à frente. Gera uma imagem PNG para enviar junto com uma mensagem editável: no celular pelo botão **Compartilhar**; no computador baixando a imagem ou copiando e colando no WhatsApp. Nada é enviado sozinho.
+
+- Cada consulta usa até 3 buscas do **limite diário de buscas**, compartilhado com a coleta. Consultas do mesmo termo nos últimos 7 dias são reaproveitadas sem custo.
+- A imagem é um levantamento com dados do Google, não uma captura de tela do Google. O rodapé traz a data e o aviso de que a ordem pode variar conforme a localização de quem pesquisa.
+
+Setup: rode `supabase/migrations/20261006000000_ranking_google.sql` e crie a Edge Function **ranking** no editor do Supabase com o conteúdo de `supabase/editor/ranking.ts`. Republique também a **coletar** (`supabase/editor/coletar.ts`), que passa a contar essas buscas no limite diário.
+
 ## Subir do zero (resumo)
 1. Supabase: crie o projeto, rode as migrations de `supabase/migrations/` **em ordem** no SQL Editor e crie o
    usuário operador (Authentication → Users → Add user, "Auto confirm"). Desative "Allow new users to sign up".
