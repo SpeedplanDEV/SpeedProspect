@@ -76,18 +76,18 @@ export function PainelAutomacao() {
 
   return (
     <section className="card mb-4">
-      <header className="flex flex-wrap items-center gap-2 border-b border-borda px-5 py-3">
+      <header className="flex flex-wrap items-center gap-2 border-b border-borda px-4 py-3 sm:px-5">
         <Clock size={15} className="text-marca" />
         <h2 className="text-sm font-medium">Automação diária</h2>
         {s.ativa ? <Badge cor="verde">Ligada</Badge> : <Badge cor="cinza">Desligada</Badge>}
         {!segredosOk && <Badge cor="vermelho">Faltam segredos no Vault</Badge>}
         <span className="text-xs text-fraco">horários de Brasília</span>
-        <div className="ml-auto flex items-center gap-2">
-          <select className="input w-36 py-1 text-xs" value={etapa} onChange={(e) => setEtapa(e.target.value)} aria-label="Etapa para testar">
+        <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
+          <select className="input min-w-0 flex-1 py-1 sm:w-36 sm:flex-none sm:text-xs" value={etapa} onChange={(e) => setEtapa(e.target.value)} aria-label="Etapa para testar">
             {ETAPAS_TESTE.map((x) => <option key={x.valor} value={x.valor}>{x.rotulo}</option>)}
           </select>
           <button
-            className="btn-secundario py-1 text-xs"
+            className="btn-secundario shrink-0 py-1 text-xs"
             onClick={() => testar.mutate()}
             disabled={testar.isPending || !segredosOk}
             title="Chama o pipeline pelo mesmo caminho do cron (Vault + service role). Com a automação desligada, o pipeline só confirma que recebeu."
@@ -98,19 +98,19 @@ export function PainelAutomacao() {
       </header>
 
       {!s.ativa && (
-        <p className="border-b border-borda bg-elevado/50 px-5 py-2 text-xs text-suave">
+        <p className="border-b border-borda bg-elevado/50 px-4 py-2 text-xs text-suave sm:px-5">
           As tarefas estão agendadas, mas o pipeline ignora as chamadas automáticas até você ligar em{' '}
           <Link to="/configuracoes" className="text-marca hover:underline">Configurações → Automação</Link>.
         </p>
       )}
 
-      <div className="grid gap-px bg-borda sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-px bg-borda sm:grid-cols-2 xl:grid-cols-4">
         {Object.entries(TAREFAS).map(([nome, t]) => {
           const tarefa = s.tarefas.find((x) => x.nome === nome);
           const ultima = ultimaDe(nome);
           const ok = ultima?.status === 'succeeded';
           return (
-            <div key={nome} className="bg-superficie px-5 py-3 text-sm">
+            <div key={nome} className="bg-superficie px-4 sm:px-5 py-3 text-sm">
               <div className="flex items-center gap-1.5 font-medium">
                 {!tarefa ? <XCircle size={14} className="text-red-500" /> : <CheckCircle2 size={14} className={tarefa.ativa ? 'text-emerald-500' : 'text-fraco'} />}
                 {t.rotulo}
@@ -133,7 +133,7 @@ export function PainelAutomacao() {
       </div>
 
       {s.respostas.length > 0 && (
-        <details className="border-t border-borda px-5 py-2 text-xs">
+        <details className="border-t border-borda px-4 sm:px-5 py-2 text-xs">
           <summary className="cursor-pointer text-suave">Últimas respostas do pipeline ({s.respostas.length})</summary>
           <ul className="mt-2 space-y-1.5">
             {s.respostas.map((r) => (

@@ -177,8 +177,10 @@ export default function Aprovacao() {
           </Vazio>
         </div>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-          <ListaFila leads={leads} idAtual={atual?.id ?? null} aoSelecionar={setIdAtual} />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
+          <div className="hidden lg:block">
+            <ListaFila leads={leads} idAtual={atual?.id ?? null} aoSelecionar={setIdAtual} />
+          </div>
           {atual && cfg.data && (
             <ErroTela chave={atual.id}>
             <CartaoAprovacao
@@ -204,7 +206,7 @@ export default function Aprovacao() {
 }
 
 function Kbd({ children }: { children: React.ReactNode }) {
-  return <kbd className="rounded border border-borda bg-elevado px-1.5 py-px font-sans text-[11px] text-suave">{children}</kbd>;
+  return <kbd className="hidden rounded border border-borda bg-elevado px-1.5 py-px font-sans text-[11px] text-suave lg:inline">{children}</kbd>;
 }
 
 function ListaFila({ leads, idAtual, aoSelecionar }: { leads: LeadComSite[]; idAtual: string | null; aoSelecionar: (id: string) => void }) {
@@ -372,6 +374,8 @@ function CartaoAprovacao({ lead, posicao, total, cfg, aoNavegar, aoConcluir, aoA
 
   const semTelefone = !lead.telefone;
   const statusSite = STATUS_SITE[lead.status_site] ?? STATUS_SITE.desconhecido;
+  // No celular a prévia ocupa ~70% da tela; no computador, altura fixa
+  const [alturaPrevia] = useState(() => (window.innerWidth < 1024 ? Math.max(420, Math.min(620, Math.round(window.innerHeight * 0.7))) : 620));
   const linkInterno = site ? `/p/${site.slug}?k=${site.token_acesso}&interno=1` : '';
 
   const atualizar = (p: Partial<Edicao>) => setEdicao((e) => (e ? { ...e, ...p } : e));
@@ -381,10 +385,10 @@ function CartaoAprovacao({ lead, posicao, total, cfg, aoNavegar, aoConcluir, aoA
   return (
     <div className="card min-w-0">
       {/* Cabeçalho do lead */}
-      <div className="flex flex-wrap items-start gap-3 border-b border-borda px-5 py-4">
+      <div className="flex flex-wrap items-start gap-3 border-b border-borda px-4 py-3 sm:px-5 sm:py-4">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="truncate text-lg font-medium">{lead.nome}</h2>
+            <h2 className="text-base font-medium leading-snug sm:text-lg">{lead.nome}</h2>
             <span className={`text-sm font-medium tabular-nums ${corScore(lead.score)}`}>score {lead.score}</span>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-suave">
@@ -418,8 +422,8 @@ function CartaoAprovacao({ lead, posicao, total, cfg, aoNavegar, aoConcluir, aoA
       {!site || !edicao ? (
         <Vazio>Este lead está marcado com prévia gerada, mas a prévia não foi encontrada. Regenere-a.</Vazio>
       ) : (
-        <div className="grid gap-5 p-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-          <PreviaFrame src={linkInterno} recarregar={recarregar} />
+        <div className="grid grid-cols-1 gap-5 p-4 sm:p-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+          <PreviaFrame src={linkInterno} recarregar={recarregar} altura={alturaPrevia} />
 
           <div className="min-w-0 space-y-5">
             {/* Edição rápida */}
@@ -462,7 +466,7 @@ function CartaoAprovacao({ lead, posicao, total, cfg, aoNavegar, aoConcluir, aoA
                             <Minus size={14} />
                           </button>
                         </div>
-                        <textarea className="input min-h-[52px] text-xs" value={s.descricao} maxLength={LIMITES.descricao} onChange={(e) => atualizarServico(i, { descricao: e.target.value })} aria-label={`Descrição do serviço ${i + 1}`} />
+                        <textarea className="input min-h-[52px] sm:text-xs" value={s.descricao} maxLength={LIMITES.descricao} onChange={(e) => atualizarServico(i, { descricao: e.target.value })} aria-label={`Descrição do serviço ${i + 1}`} />
                       </div>
                     ))}
                     {edicao.servicos.length < (site.conteudo.servicos ?? []).length && (
@@ -491,16 +495,19 @@ function CartaoAprovacao({ lead, posicao, total, cfg, aoNavegar, aoConcluir, aoA
                   <button className="text-xs text-marca hover:underline" onClick={() => setTexto(textoPadrao)}>Restaurar texto</button>
                 )}
               </div>
-              <textarea className="input min-h-[150px] text-[13px] leading-relaxed" value={texto} onChange={(e) => setTexto(e.target.value)} aria-label="Mensagem de primeiro contato" />
+              <textarea className="input min-h-[150px] leading-relaxed sm:text-[13px]" value={texto} onChange={(e) => setTexto(e.target.value)} aria-label="Mensagem de primeiro contato" />
               <p className="mt-1 text-xs text-fraco">Você ainda poderá ajustar o texto na tela Envios antes de mandar.</p>
             </section>
 
             {/* Ações */}
             <section className="space-y-2">
-              <button className="btn-primario w-full py-2" onClick={() => aprovar.mutate()} disabled={ocupado}>
-                {aprovar.isPending ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                Aprovar e mandar para Envios <Kbd>A</Kbd>
-              </button>
+              {/* No celular o botão de aprovar acompanha a rolagem, logo acima da barra inferior */}
+              <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-10 -mx-1 rounded-lg bg-superficie/95 p-1 backdrop-blur lg:static lg:mx-0 lg:bg-transparent lg:p-0">
+                <button className="btn-primario min-h-11 w-full py-2 shadow-sm lg:min-h-0 lg:shadow-none" onClick={() => aprovar.mutate()} disabled={ocupado}>
+                  {aprovar.isPending ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                  Aprovar e mandar para Envios <Kbd>A</Kbd>
+                </button>
+              </div>
               <p className="text-xs text-fraco">
                 Ao aprovar: a prévia é publicada (o link passa a funcionar) e esta mensagem vai para a tela{' '}
                 <Link to="/envios" className="text-marca hover:underline">Envios</Link>. Nada é enviado sozinho.

@@ -80,9 +80,9 @@ export default function Configuracoes() {
         <div className="text-sm text-suave">Carregando…</div>
       ) : (
         <form id="form-config" onSubmit={handleSubmit((d) => salvar.mutate(d))} className="max-w-3xl space-y-4" noValidate>
-          <section className="card p-5">
+          <section className="card p-4 sm:p-5">
             <h2 className="mb-4 text-sm font-medium">Seu negócio</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="label" htmlFor="negocio_nome">Nome do negócio</label>
                 <input id="negocio_nome" className="input" {...register('negocio_nome')} />
@@ -114,10 +114,10 @@ export default function Configuracoes() {
             </div>
           </section>
 
-          <section className="card p-5">
+          <section className="card p-4 sm:p-5">
             <h2 className="mb-1 text-sm font-medium">Limites diários</h2>
             <p className="mb-4 text-xs text-suave">O sistema nunca ultrapassa estes valores.</p>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div>
                 <label className="label" htmlFor="limite_buscas_dia">Buscas no Places / dia</label>
                 <input id="limite_buscas_dia" type="number" className="input" {...register('limite_buscas_dia')} />
@@ -136,9 +136,9 @@ export default function Configuracoes() {
             </div>
           </section>
 
-          <section className="card p-5">
+          <section className="card p-4 sm:p-5">
             <h2 className="mb-4 text-sm font-medium">Qualificação e IA</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="label" htmlFor="score_minimo">Score mínimo (0–100)</label>
                 <input id="score_minimo" type="number" className="input" {...register('score_minimo')} />
@@ -187,7 +187,7 @@ export default function Configuracoes() {
               </div>
             </div>
           </section>
-          <section className="card p-5">
+          <section className="card p-4 sm:p-5">
             <h2 className="mb-1 text-sm font-medium">Automação e custos</h2>
             <p className="mb-4 text-xs text-suave">
               Todo dia: 03:00 coleta, 03:30 qualificação, 04:00–05:50 prévias com IA e 08:00 follow-ups (horário de Brasília).
@@ -198,7 +198,7 @@ export default function Configuracoes() {
                 Rode o SQL 20261002000000_fase7_automacao.sql no Supabase para liberar estas opções.
               </p>
             )}
-            <fieldset disabled={!temFase7} className="grid gap-4 disabled:opacity-60 sm:grid-cols-2">
+            <fieldset disabled={!temFase7} className="grid grid-cols-1 gap-4 disabled:opacity-60 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <Controller
                   control={control}

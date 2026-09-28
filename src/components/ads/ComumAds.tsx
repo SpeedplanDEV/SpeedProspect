@@ -102,7 +102,7 @@ export function ChecklistMeta({ abertoInicial = false }: { abertoInicial?: boole
   return (
     <section className="card">
       <button
-        className="flex w-full items-center justify-between px-5 py-3 text-left text-sm font-medium"
+        className="flex w-full items-center justify-between px-4 sm:px-5 py-3 text-left text-sm font-medium"
         onClick={() => setAberto((a) => !a)}
         aria-expanded={aberto}
       >
@@ -110,7 +110,7 @@ export function ChecklistMeta({ abertoInicial = false }: { abertoInicial?: boole
         <ChevronDown size={16} className={`transition-transform ${aberto ? 'rotate-180' : ''}`} />
       </button>
       {aberto && (
-        <ol className="space-y-3 border-t border-borda px-5 py-4 text-sm">
+        <ol className="space-y-3 border-t border-borda px-4 sm:px-5 py-4 text-sm">
           {PASSOS.map((p, i) => (
             <li key={p.titulo} className="flex gap-3">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-marca/10 text-xs font-medium text-marca">{i + 1}</span>

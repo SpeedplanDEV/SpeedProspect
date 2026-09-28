@@ -354,7 +354,7 @@ export function FormConta({ aberto, conta, aoFechar }: { aberto: boolean; conta:
         {/* 4. Configuração */}
         <section>
           <h3 className="mb-2 font-medium">4. Configuração no sistema</h3>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <label className="label" htmlFor="nome">Nome</label>
               <input id="nome" className="input" value={e.nome} onChange={(ev) => atualizar({ nome: ev.target.value })} placeholder="Ex.: Speed Sites (agência)" />

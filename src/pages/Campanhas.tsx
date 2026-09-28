@@ -95,7 +95,60 @@ export default function Campanhas() {
       {error ? (
         <Erro erro={error} />
       ) : (
-        <div className="card overflow-x-auto">
+        <>
+        {/* Celular: cartões */}
+        <ul className="space-y-2 md:hidden">
+          {isLoading && <li className="card"><Vazio>Carregando…</Vazio></li>}
+          {!isLoading && !data?.length && (
+            <li className="card"><Vazio>Nenhuma campanha ainda. Crie a primeira em “Nova campanha”.</Vazio></li>
+          )}
+          {data?.map((c) => (
+            <li key={c.id} className={`card p-4 ${c.ativa ? '' : 'opacity-70'}`}>
+              <div className="flex items-start gap-3">
+                <button className="min-w-0 flex-1 text-left" onClick={() => setEditando(c)}>
+                  <div className="font-medium">{c.nome}</div>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-suave">
+                    <Badge cor="azul">{rotuloNicho(c.nicho)}</Badge>
+                    <span>{c.cidade} - {c.uf}</span>
+                    <span>· até {formatarNumero(c.max_leads_execucao)} leads</span>
+                  </div>
+                </button>
+                <Switch marcado={c.ativa} aoMudar={() => alternarAtiva.mutate(c)} />
+              </div>
+              <p className="mt-2 line-clamp-2 text-xs text-suave">
+                <span className="text-fraco">Termos:</span> {c.termos_busca.join(', ') || '—'}
+                {c.bairros.length ? <> · <span className="text-fraco">{formatarNumero(c.bairros.length)} bairro(s)</span></> : null}
+              </p>
+              <p className="mt-0.5 text-xs text-fraco">Última execução: {formatarDataHora(c.ultima_execucao)}</p>
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  className="btn-secundario flex-1"
+                  disabled={!c.ativa || executar.isPending}
+                  onClick={() => executar.mutate(c)}
+                >
+                  {executar.isPending && executar.variables?.id === c.id ? (
+                    <><Loader2 size={15} className="animate-spin" /> Coletando…</>
+                  ) : (
+                    <><Play size={15} /> Executar agora</>
+                  )}
+                </button>
+                <button className="btn-secundario w-10 px-0" aria-label="Editar" onClick={() => setEditando(c)}>
+                  <Pencil size={15} />
+                </button>
+                <button
+                  className="btn-secundario w-10 px-0 hover:text-red-500"
+                  aria-label="Excluir"
+                  onClick={() => {
+                    if (confirm(`Excluir a campanha “${c.nome}”? Os leads coletados são mantidos.`)) excluir.mutate(c);
+                  }}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <div className="card hidden overflow-x-auto md:block">
           <table className="tabela">
             <thead>
               <tr>
@@ -168,6 +221,7 @@ export default function Campanhas() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <FormCampanha campanha={editando} aoFechar={() => setEditando(null)} />

@@ -134,13 +134,13 @@ export default function ContasAds() {
       <div className="space-y-4">
         {/* Conexão com a Meta */}
         {diag.isLoading ? (
-          <div className="card flex items-center gap-2 px-5 py-3 text-sm text-suave">
+          <div className="card flex items-center gap-2 px-4 sm:px-5 py-3 text-sm text-suave">
             <Loader2 size={15} className="animate-spin" /> Verificando a conexão com a Meta…
           </div>
         ) : diag.error ? (
           <AvisoErroMeta erro={diag.error} titulo="Conexão com a Meta não configurada" />
         ) : conectado ? (
-          <div className="card px-5 py-3 text-sm">
+          <div className="card px-4 sm:px-5 py-3 text-sm">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <IconeNivel nivel={diag.data.ok ? 'ok' : 'aviso'} />
               <span>
@@ -172,9 +172,9 @@ export default function ContasAds() {
         {contas.error ? (
           <AvisoErroMeta erro={contas.error} titulo="Não foi possível carregar as contas" />
         ) : contas.isLoading ? (
-          <div className="card px-5 py-8 text-center text-sm text-suave">Carregando…</div>
+          <div className="card px-4 sm:px-5 py-8 text-center text-sm text-suave">Carregando…</div>
         ) : !lista.length ? (
-          <div className="card px-5 py-10 text-center text-sm">
+          <div className="card px-4 sm:px-5 py-10 text-center text-sm">
             <p className="font-medium">Nenhuma conta conectada</p>
             <p className="mt-1 text-suave">Conecte primeiro a conta de anúncios da agência; depois as dos clientes.</p>
             <button className="btn-primario mt-4" onClick={() => setForm({ aberto: true, conta: null })}><Plus size={15} /> Conectar conta</button>
@@ -187,7 +187,7 @@ export default function ContasAds() {
               const sincronizandoEsta = sync.isPending && sync.variables === c.id;
               return (
                 <article key={c.id} className={`card flex flex-col ${c.ativa ? '' : 'opacity-70'}`}>
-                  <header className="flex items-start gap-3 border-b border-borda px-5 py-3">
+                  <header className="flex items-start gap-3 border-b border-borda px-4 sm:px-5 py-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <h2 className="truncate text-[15px] font-medium">{c.nome}</h2>
@@ -213,7 +213,7 @@ export default function ContasAds() {
                     </div>
                   </header>
 
-                  <div className="grid gap-4 px-5 py-4 text-sm sm:grid-cols-2">
+                  <div className="grid gap-4 px-4 sm:px-5 py-4 text-sm sm:grid-cols-2">
                     <dl className="space-y-1.5 text-xs">
                       <div className="flex gap-2"><dt className="w-20 shrink-0 text-suave">Página</dt><dd className="min-w-0 truncate">{c.meta_page_nome ?? (c.meta_page_id ? c.meta_page_id : '—')}</dd></div>
                       <div className="flex gap-2"><dt className="w-20 shrink-0 text-suave">Instagram</dt><dd>{c.meta_instagram_usuario ? `@${c.meta_instagram_usuario}` : '—'}</dd></div>
@@ -235,7 +235,7 @@ export default function ContasAds() {
                     </div>
                   </div>
 
-                  <footer className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-borda px-5 py-2.5 text-xs text-suave">
+                  <footer className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-borda px-4 sm:px-5 py-2.5 text-xs text-suave">
                     <span className="inline-flex items-center gap-1">
                       <Activity size={13} />
                       {n ? `${n.total} campanha(s) · ${n.ativas} ativa(s)${n.importadas ? ` · ${n.importadas} importada(s)` : ''}` : 'Nenhuma campanha ainda'}

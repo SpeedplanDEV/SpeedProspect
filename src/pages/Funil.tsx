@@ -128,7 +128,7 @@ export default function Funil() {
   return (
     <Pagina
       titulo="Funil"
-      descricao="Arraste os cards para mudar a etapa. Clique no nome para ver o histórico."
+      descricao="Arraste os cards (ou use o botão ⇄ no celular) para mudar a etapa. Toque no nome para ver o histórico."
       acoes={
         <span className="text-sm text-suave">
           Receita fechada: <span className="font-medium text-texto">{formatarMoeda(receita)}</span>
@@ -140,7 +140,7 @@ export default function Funil() {
       ) : funil.isLoading ? (
         <div className="text-sm text-suave">Carregando…</div>
       ) : (
-        <div className="flex gap-2.5 overflow-x-auto pb-4">
+        <div className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-2.5 overflow-x-auto px-4 pb-4 sm:mx-0 sm:snap-none sm:px-0">
           {COLUNAS.map((col) => {
             const itens = cards.filter((c) => c.status_funil === col.status);
             const recolhida = col.status === 'perdido' && !perdidoAberto;
@@ -155,7 +155,7 @@ export default function Funil() {
                 onDragLeave={() => setSobre((s) => (s === col.status ? null : s))}
                 onDrop={aoSoltar(col.status)}
                 className={`flex flex-col rounded-lg border bg-elevado/50 transition-colors ${
-                  recolhida ? 'w-14 shrink-0' : 'min-w-[200px] flex-1 basis-0'
+                  recolhida ? 'w-14 shrink-0 snap-start' : 'min-w-[82vw] flex-1 basis-0 snap-start sm:min-w-[200px]'
                 } ${alvo ? 'border-marca bg-marca/5' : 'border-borda'}`}
                 aria-label={`Coluna ${col.rotulo}`}
               >
@@ -177,7 +177,7 @@ export default function Funil() {
                   <span className="rounded bg-superficie px-1.5 text-[11px] tabular-nums text-suave">{itens.length}</span>
                 </header>
                 {!recolhida && (
-                  <div className="flex max-h-[calc(100vh-190px)] min-h-[120px] flex-col gap-2 overflow-y-auto px-2 pb-2">
+                  <div className="flex max-h-[calc(100dvh-270px)] min-h-[120px] lg:max-h-[calc(100vh-190px)] flex-col gap-2 overflow-y-auto px-2 pb-2">
                     {itens.map((c) => (
                       <Card
                         key={c.id}
@@ -284,7 +284,7 @@ function Card({ lead, aoArrastar, aoSoltarCard, aoMover, aoAbrir, aoEditarValor 
             href={`https://wa.me/${e164.replace(/\D/g, '')}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center gap-1 rounded-md bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700"
+            className="inline-flex shrink-0 items-center gap-1 rounded-md bg-emerald-600 px-2.5 py-1.5 text-xs sm:px-2 sm:py-1 font-medium text-white hover:bg-emerald-700"
             title="Abrir a conversa no WhatsApp"
           >
             <MessageCircle size={12} /> WhatsApp
@@ -294,7 +294,7 @@ function Card({ lead, aoArrastar, aoSoltarCard, aoMover, aoAbrir, aoEditarValor 
         )}
         {/* Alternativa ao arrastar (teclado, celular): lista nativa sobre um botão compacto */}
         <label
-          className="relative ml-auto inline-flex shrink-0 cursor-pointer items-center rounded-md border border-borda p-1.5 text-suave hover:bg-elevado hover:text-texto"
+          className="relative ml-auto inline-flex shrink-0 cursor-pointer items-center rounded-md border border-borda p-2 text-suave sm:p-1.5 hover:bg-elevado hover:text-texto"
           title="Mover para outra etapa"
         >
           <ArrowRightLeft size={13} aria-hidden />
@@ -333,7 +333,7 @@ function DialogoValor({ lead, salvando, aoCancelar, aoConfirmar }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="titulo-fechar" onClick={aoCancelar}>
       <form
-        className="card w-full max-w-sm p-5"
+        className="card w-full max-w-sm p-4 sm:p-5"
         onClick={(e) => e.stopPropagation()}
         onSubmit={(e) => {
           e.preventDefault();

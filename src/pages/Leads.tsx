@@ -133,28 +133,28 @@ export default function Leads() {
         </>
       }
     >
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <div className="relative w-64">
+      <div className="mb-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+        <div className="relative col-span-2 sm:w-64">
           <Search size={15} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-fraco" />
           <input className="input pl-8" placeholder="Buscar por nome…" value={busca} onChange={(e) => setBusca(e.target.value)} />
         </div>
-        <select className="input w-40" value={funil} onChange={(e) => setFunil(e.target.value)}>
+        <select className="input sm:w-40" value={funil} onChange={(e) => setFunil(e.target.value)}>
           <option value="">Todos os status</option>
           {STATUS_FUNIL.map((s) => <option key={s.valor} value={s.valor}>{s.rotulo}</option>)}
         </select>
-        <select className="input w-48" value={campanha} onChange={(e) => setCampanha(e.target.value)}>
+        <select className="input sm:w-48" value={campanha} onChange={(e) => setCampanha(e.target.value)}>
           <option value="">Todas as campanhas</option>
           {campanhas.data?.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
         </select>
-        <select className="input w-36" value={nicho} onChange={(e) => setNicho(e.target.value)}>
+        <select className="input sm:w-36" value={nicho} onChange={(e) => setNicho(e.target.value)}>
           <option value="">Todos os nichos</option>
           {NICHOS.map((n) => <option key={n.valor} value={n.valor}>{n.rotulo}</option>)}
         </select>
-        <select className="input w-40" value={site} onChange={(e) => setSite(e.target.value)}>
+        <select className="input sm:w-40" value={site} onChange={(e) => setSite(e.target.value)}>
           <option value="">Qualquer site</option>
           {Object.entries(STATUS_SITE).map(([v, s]) => <option key={v} value={v}>{s.rotulo}</option>)}
         </select>
-        <select className="input ml-auto w-40" value={ordem} onChange={(e) => setOrdem(e.target.value as typeof ordem)}>
+        <select className="input sm:ml-auto sm:w-40" value={ordem} onChange={(e) => setOrdem(e.target.value as typeof ordem)}>
           {ORDENS.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
         </select>
       </div>
@@ -162,7 +162,48 @@ export default function Leads() {
       {error ? (
         <Erro erro={error} />
       ) : (
-        <div className="card overflow-x-auto">
+        <>
+        {/* Celular: lista em cartões */}
+        <ul className="card divide-y divide-borda md:hidden">
+          {isLoading && <li><Vazio>Carregando…</Vazio></li>}
+          {!isLoading && !data?.leads.length && (
+            <li><Vazio>Nenhum lead. Rode “Executar agora” em uma campanha para coletar empresas.</Vazio></li>
+          )}
+          {data?.leads.map((l) => {
+            const f = statusFunil(l.status_funil);
+            const s = STATUS_SITE[l.status_site];
+            return (
+              <li key={l.id}>
+                <button type="button" className="flex w-full items-start gap-3 px-4 py-3 text-left active:bg-elevado" onClick={() => setSelecionado(l.id)}>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-medium">{l.nome}</div>
+                    <div className="mt-0.5 truncate text-xs text-suave">
+                      {rotuloNicho(l.nicho)}{l.bairro ? ` · ${l.bairro}` : ''}
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-suave">
+                      <span className="inline-flex items-center gap-1 tabular-nums">
+                        {formatarTelefone(l.telefone)}
+                        {l.telefone_celular && <Smartphone size={12} className="text-emerald-500" aria-label="Celular" />}
+                      </span>
+                      {l.rating != null && (
+                        <span className="tabular-nums">★ {formatarNumero(l.rating, 1)} ({formatarNumero(l.reviews_count)})</span>
+                      )}
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      <Badge cor={f.cor}>{f.rotulo}</Badge>
+                      <Badge cor={s.cor}>{s.rotulo}</Badge>
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <div className={`text-lg font-medium leading-none tabular-nums ${corScore(l.score)}`}>{l.score}</div>
+                    <div className="mt-0.5 text-[10px] uppercase tracking-wide text-fraco">score</div>
+                  </div>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="card hidden overflow-x-auto md:block">
           <table className="tabela">
             <thead>
               <tr>
@@ -217,6 +258,7 @@ export default function Leads() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       {total > POR_PAGINA && (

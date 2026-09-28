@@ -117,7 +117,30 @@ export default function Execucoes() {
       ) : (
         <>
           <PainelAutomacao />
-          <div className="card overflow-x-auto">
+          {/* Celular: cartões */}
+          <ul className="card divide-y divide-borda md:hidden">
+            {isLoading && <li><Vazio>Carregando…</Vazio></li>}
+            {!isLoading && !data?.length && <li><Vazio>Nenhuma execução registrada ainda.</Vazio></li>}
+            {data?.map((ex) => (
+              <li key={ex.id}>
+                <button type="button" className="w-full px-4 py-3 text-left active:bg-elevado" onClick={() => setSelecionada(ex)}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">{rotuloEtapa(ex.etapa)}</span>
+                    <StatusExecucao ex={ex} />
+                  </div>
+                  <div className="mt-0.5 text-xs text-suave">
+                    <span className="tabular-nums">{formatarDataHora(ex.iniciado_em)}</span>
+                    {ex.campanha_id ? ` · ${nomeCampanha(ex.campanha_id)}` : ''}
+                  </div>
+                  <div className="mt-0.5 text-xs tabular-nums text-fraco">
+                    {formatarDuracao(ex.iniciado_em, ex.finalizado_em)} · {formatarNumero(ex.itens_processados)} itens · {formatarMoeda(ex.custo_estimado, 4)}
+                  </div>
+                  {ex.erro && <p className="mt-1 line-clamp-2 text-xs text-red-500">{ex.erro}</p>}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="card hidden overflow-x-auto md:block">
             <table className="tabela">
               <thead>
                 <tr>

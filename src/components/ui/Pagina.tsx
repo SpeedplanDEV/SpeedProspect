@@ -8,13 +8,13 @@ export function Pagina({ titulo, descricao, acoes, children }: {
   children: ReactNode;
 }) {
   return (
-    <div className="p-6">
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-medium">{titulo}</h1>
+    <div className="mx-auto max-w-[1600px] px-4 py-4 sm:px-6 sm:py-6">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3 sm:mb-5">
+        <div className="min-w-0">
+          <h1 className="text-lg font-medium sm:text-xl">{titulo}</h1>
           {descricao && <p className="mt-0.5 text-sm text-suave">{descricao}</p>}
         </div>
-        {acoes && <div className="flex items-center gap-2">{acoes}</div>}
+        {acoes && <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">{acoes}</div>}
       </div>
       {children}
     </div>

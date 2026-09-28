@@ -328,7 +328,7 @@ function ItemEnvio({ item, bloqueado, aoPopupBloqueado }: {
   const motivoBloqueio = !e164 ? 'Lead sem telefone válido' : bloqueado ? 'Limite diário atingido' : undefined;
 
   return (
-    <div className="card grid gap-4 p-4 md:grid-cols-[220px_minmax(0,1fr)_170px]">
+    <div className="card grid grid-cols-1 gap-4 p-4 md:grid-cols-[220px_minmax(0,1fr)_170px]">
       <div className="min-w-0 text-sm">
         <div className="flex items-center gap-2">
           <span className="truncate font-medium" title={lead.nome}>{lead.nome}</span>
@@ -353,7 +353,7 @@ function ItemEnvio({ item, bloqueado, aoPopupBloqueado }: {
 
       <div className="min-w-0">
         <textarea
-          className="input min-h-[120px] text-[13px] leading-relaxed"
+          className="input min-h-[140px] leading-relaxed sm:min-h-[120px] sm:text-[13px]"
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
           onBlur={() => salvar.mutate()}
@@ -365,9 +365,9 @@ function ItemEnvio({ item, bloqueado, aoPopupBloqueado }: {
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-2 gap-2 md:flex md:flex-col">
         <button
-          className="btn bg-emerald-600 py-2 text-white hover:bg-emerald-700"
+          className="btn col-span-2 min-h-11 bg-emerald-600 py-2 text-white hover:bg-emerald-700 md:min-h-0"
           onClick={abrirWhatsApp}
           disabled={ocupado || !!motivoBloqueio}
           title={motivoBloqueio}
@@ -378,9 +378,9 @@ function ItemEnvio({ item, bloqueado, aoPopupBloqueado }: {
         {!pulando ? (
           <button className="btn-fantasma" onClick={() => setPulando(true)} disabled={ocupado}><SkipForward size={15} /> Pular</button>
         ) : (
-          <div className="space-y-1.5">
+          <div className="col-span-2 space-y-1.5">
             <input
-              className="input text-xs"
+              className="input sm:text-xs"
               placeholder="Motivo (opcional)"
               maxLength={120}
               autoFocus

@@ -114,19 +114,19 @@ function Conteudo({ p, atual, alertaCusto }: { p: Painel; atual: boolean; alerta
           </span>
         </div>
       )}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-5">
         {cards.map((c) => (
-          <Link key={c.rotulo} to={c.link} className="card p-4 transition-colors hover:border-marca/50">
+          <Link key={c.rotulo} to={c.link} className="card min-w-0 p-3 transition-colors hover:border-marca/50 sm:p-4">
             <div className="text-xs text-suave">{c.rotulo}</div>
-            <div className={`mt-1 text-2xl font-medium tabular-nums ${c.destaque ? 'text-emerald-600' : ''}`}>{c.valor}</div>
+            <div className={`mt-1 truncate text-xl font-medium tabular-nums sm:text-2xl ${c.destaque ? 'text-emerald-600' : ''}`}>{c.valor}</div>
             {c.sub && <div className="mt-0.5 text-[11px] text-fraco">{c.sub}</div>}
           </Link>
         ))}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
         {/* Funil com taxas de conversão entre etapas */}
-        <section className="card p-5">
+        <section className="card p-4 sm:p-5">
           <h2 className="text-sm font-medium">Funil do mês</h2>
           <p className="mb-4 text-xs text-fraco">Leads que chegaram a cada etapa no mês · % em relação à etapa anterior</p>
           <ol className="space-y-2">
@@ -134,7 +134,7 @@ function Conteudo({ p, atual, alertaCusto }: { p: Painel; atual: boolean; alerta
               const v = e(x.n);
               const anterior = i ? e(ETAPAS[i - 1].n) : null;
               return (
-                <li key={x.n} className="grid grid-cols-[110px_minmax(0,1fr)_48px] items-center gap-2 text-sm">
+                <li key={x.n} className="grid grid-cols-[104px_minmax(0,1fr)_40px] items-center gap-2 text-[13px] sm:grid-cols-[110px_minmax(0,1fr)_48px] sm:text-sm">
                   <span className="truncate text-suave">{x.rotulo}</span>
                   <span className="flex items-center gap-2">
                     <span
@@ -150,26 +150,48 @@ function Conteudo({ p, atual, alertaCusto }: { p: Painel; atual: boolean; alerta
           </ol>
         </section>
 
-        <section className="card p-5">
+        <section className="card min-w-0 p-4 sm:p-5">
           <h2 className="text-sm font-medium">Envios × aberturas</h2>
           <p className="mb-3 text-xs text-fraco">Por dia, nos últimos 30 dias · aberturas = leads que abriram a prévia pelo link enviado</p>
           <GraficoEnvios serie={p.serie ?? []} />
         </section>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
         <section className="card">
-          <header className="flex items-center gap-2 border-b border-borda px-5 py-3">
+          <header className="flex flex-wrap items-center gap-x-2 gap-y-0.5 border-b border-borda px-4 py-3 sm:px-5">
             <Flame size={15} className="text-orange-500" />
             <h2 className="text-sm font-medium">Leads quentes</h2>
-            <span className="text-xs text-fraco">abriram nas últimas 48 h e ainda não responderam</span>
+            <span className="w-full text-xs text-fraco sm:w-auto">abriram nas últimas 48 h e ainda não responderam</span>
           </header>
           {!atual ? (
             <Vazio>Disponível apenas no mês atual.</Vazio>
           ) : !p.quentes.length ? (
             <Vazio>Nenhum lead quente agora.</Vazio>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            <ul className="divide-y divide-borda sm:hidden">
+              {p.quentes.map((q) => {
+                const e164 = paraE164(q.telefone);
+                return (
+                  <li key={q.id} className="flex items-center gap-3 px-4 py-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-medium">{q.nome}</div>
+                      <div className="text-xs text-suave">{rotuloNicho(q.nicho)} · score {q.score}</div>
+                      <div className="mt-0.5 text-xs tabular-nums text-fraco">
+                        {q.visitas} visita{q.visitas === 1 ? '' : 's'} · última {formatarDataHora(q.ultima_visita)}
+                      </div>
+                    </div>
+                    {e164 && (
+                      <a href={`https://wa.me/${e164.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="btn shrink-0 border border-emerald-600/40 text-emerald-600">
+                        <MessageCircle size={15} /> Conversar
+                      </a>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="hidden overflow-x-auto sm:block">
               <table className="tabela">
                 <thead>
                   <tr><th>Empresa</th><th>Telefone</th><th className="text-right">Visitas</th><th>Última visita</th><th /></tr>
@@ -199,11 +221,12 @@ function Conteudo({ p, atual, alertaCusto }: { p: Painel; atual: boolean; alerta
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </section>
 
         <section className="card">
-          <header className="flex items-center gap-2 border-b border-borda px-5 py-3">
+          <header className="flex items-center gap-2 border-b border-borda px-4 sm:px-5 py-3">
             <AlertTriangle size={15} className="text-red-500" />
             <h2 className="text-sm font-medium">Últimas execuções com erro</h2>
           </header>
@@ -212,7 +235,7 @@ function Conteudo({ p, atual, alertaCusto }: { p: Painel; atual: boolean; alerta
           ) : (
             <ul className="divide-y divide-borda">
               {p.erros.map((x) => (
-                <li key={x.id} className="px-5 py-3 text-sm">
+                <li key={x.id} className="px-4 sm:px-5 py-3 text-sm">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-medium">{ROTULO_ETAPA_EXEC[x.etapa] ?? x.etapa}</span>
                     <span className="text-xs tabular-nums text-fraco">{formatarDataHora(x.iniciado_em)}</span>
@@ -220,7 +243,7 @@ function Conteudo({ p, atual, alertaCusto }: { p: Painel; atual: boolean; alerta
                   <p className="mt-0.5 line-clamp-2 text-xs text-red-600">{x.erro ?? 'Erro sem mensagem'}</p>
                 </li>
               ))}
-              <li className="px-5 py-2 text-right text-xs"><Link to="/execucoes" className="text-marca hover:underline">Ver execuções</Link></li>
+              <li className="px-4 sm:px-5 py-2 text-right text-xs"><Link to="/execucoes" className="text-marca hover:underline">Ver execuções</Link></li>
             </ul>
           )}
         </section>
