@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Pencil, Play, Plus, Trash2 } from 'lucide-react';
+import { Check, Loader2, Pencil, Play, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { formatarDataHora, formatarNumero } from '@/lib/format';
 import { campanhaSchema, type CampanhaDados, type CampanhaForm } from '@/lib/schemas';
-import { NICHOS, UFS, rotuloNicho, type Campanha } from '@/lib/types';
+import { NICHOS, UFS, rotuloNicho, type Campanha, type Nicho } from '@/lib/types';
+import { TERMOS_SUGERIDOS, nomeSugerido, normalizarNome, useMunicipios } from '@/lib/sugestoes';
 import { Badge, CampoErro, Erro, Pagina, Vazio } from '@/components/ui/Pagina';
 import { Drawer } from '@/components/ui/Drawer';
 import { Switch } from '@/components/ui/Switch';
@@ -234,10 +235,32 @@ function FormCampanha({ campanha, aoFechar }: { campanha: Campanha | 'nova' | nu
   const toast = useToast();
   const nova = campanha === 'nova';
 
-  const { register, handleSubmit, reset, control, formState } = useForm<CampanhaForm, unknown, CampanhaDados>({
+  const { register, handleSubmit, reset, control, formState, watch, setValue } = useForm<CampanhaForm, unknown, CampanhaDados>({
     resolver: zodResolver(campanhaSchema),
     defaultValues: VAZIA,
   });
+
+  const nicho = watch('nicho') as Nicho;
+  const uf = watch('uf');
+  const cidade = watch('cidade') ?? '';
+  const termos = watch('termos_busca') ?? [];
+  const nome = watch('nome') ?? '';
+  const municipios = useMunicipios(uf);
+  const [verTodos, setVerTodos] = useState(false);
+
+  // Cidade digitada confere com a lista oficial do IBGE? (a coleta descarta empresas de outra cidade)
+  const cidadeOficial = municipios.data?.find((m) => normalizarNome(m) === normalizarNome(cidade));
+  const cidadeDesconhecida = !!municipios.data && cidade.trim().length >= 2 && !cidadeOficial;
+  const parecidas = cidadeDesconhecida
+    ? municipios.data!.filter((m) => normalizarNome(m).includes(normalizarNome(cidade))).slice(0, 4)
+    : [];
+
+  const sugeridos = TERMOS_SUGERIDOS[nicho] ?? [];
+  const faltando = sugeridos.filter((t) => !termos.some((x) => normalizarNome(x) === normalizarNome(t)));
+  const visiveis = verTodos ? faltando : faltando.slice(0, 8);
+  const adicionarTermos = (novos: string[]) =>
+    setValue('termos_busca', [...termos, ...novos], { shouldDirty: true, shouldValidate: formState.isSubmitted });
+  const sugestaoNome = nomeSugerido(nicho, termos, cidadeOficial ?? cidade);
 
   useEffect(() => {
     if (campanha === 'nova') reset(VAZIA);
@@ -283,6 +306,15 @@ function FormCampanha({ campanha, aoFechar }: { campanha: Campanha | 'nova' | nu
         <div>
           <label className="label" htmlFor="nome">Nome</label>
           <input id="nome" className="input" placeholder="Dentistas Rio Preto" {...register('nome')} />
+          {cidade.trim() && sugestaoNome !== nome.trim() && (
+            <button
+              type="button"
+              className="mt-1 inline-flex items-center gap-1 text-xs text-marca hover:underline"
+              onClick={() => setValue('nome', sugestaoNome, { shouldDirty: true, shouldValidate: formState.isSubmitted })}
+            >
+              <Sparkles size={12} /> Usar “{sugestaoNome}”
+            </button>
+          )}
           <CampoErro msg={e.nome?.message} />
         </div>
         <div>
@@ -295,10 +327,42 @@ function FormCampanha({ campanha, aoFechar }: { campanha: Campanha | 'nova' | nu
           <p className="mt-1 text-xs text-fraco">Define o template da landing page e o tom da IA.</p>
           <CampoErro msg={e.nicho?.message} />
         </div>
-        <div className="grid grid-cols-[1fr_90px] gap-3">
+        <div className="grid grid-cols-[minmax(0,1fr)_90px] gap-3">
           <div>
             <label className="label" htmlFor="cidade">Cidade</label>
-            <input id="cidade" className="input" placeholder="São José do Rio Preto" {...register('cidade')} />
+            <input
+              id="cidade"
+              className="input"
+              placeholder={municipios.isLoading ? 'Carregando cidades…' : 'Comece a digitar…'}
+              list="lista-municipios"
+              autoComplete="off"
+              {...register('cidade')}
+            />
+            <datalist id="lista-municipios">
+              {municipios.data?.map((m) => <option key={m} value={m} />)}
+            </datalist>
+            {cidadeOficial && cidadeOficial !== cidade.trim() && (
+              <button type="button" className="mt-1 text-xs text-marca hover:underline" onClick={() => setValue('cidade', cidadeOficial, { shouldDirty: true })}>
+                Usar a grafia oficial: {cidadeOficial}
+              </button>
+            )}
+            {cidadeOficial && cidadeOficial === cidade.trim() && (
+              <p className="mt-1 inline-flex items-center gap-1 text-xs text-emerald-600"><Check size={12} /> Cidade encontrada no IBGE</p>
+            )}
+            {cidadeDesconhecida && (
+              <div className="mt-1 text-xs text-amber-600">
+                Não encontrei “{cidade.trim()}” em {uf}. Confira a grafia: a coleta descarta empresas de outra cidade.
+                {parecidas.length > 0 && (
+                  <span className="mt-1 flex flex-wrap gap-1">
+                    {parecidas.map((m) => (
+                      <button key={m} type="button" className="rounded border border-borda px-1.5 py-0.5 text-suave hover:border-marca hover:text-marca" onClick={() => setValue('cidade', m, { shouldDirty: true })}>
+                        {m}
+                      </button>
+                    ))}
+                  </span>
+                )}
+              </div>
+            )}
             <CampoErro msg={e.cidade?.message} />
           </div>
           <div>
@@ -317,8 +381,39 @@ function FormCampanha({ campanha, aoFechar }: { campanha: Campanha | 'nova' | nu
               <TagInput id="termos" valor={field.value} aoMudar={field.onChange} placeholder="dentista, clínica odontológica…" />
             )}
           />
-          <p className="mt-1 text-xs text-fraco">Enter ou vírgula para adicionar. Cada termo vira uma consulta “termo em cidade - UF”.</p>
+          <p className="mt-1 text-xs text-fraco">
+            Enter ou vírgula para adicionar. Cada termo vira uma consulta “termo em cidade - UF”, com até 60 empresas; mais termos trazem mais empresas.
+          </p>
           <CampoErro msg={e.termos_busca?.message} />
+          {faltando.length > 0 && (
+            <div className="mt-2 rounded-md border border-dashed border-borda p-2.5">
+              <div className="mb-1.5 flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-suave">
+                  <Sparkles size={12} className="text-marca" /> Sugestões para {rotuloNicho(nicho)}
+                </span>
+                <button type="button" className="text-xs text-marca hover:underline" onClick={() => adicionarTermos(faltando)}>
+                  Adicionar todas ({faltando.length})
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {visiveis.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => adicionarTermos([t])}
+                    className="inline-flex items-center gap-1 rounded-full border border-borda bg-superficie px-2.5 py-1 text-xs text-suave hover:border-marca hover:text-marca"
+                  >
+                    <Plus size={11} /> {t}
+                  </button>
+                ))}
+                {faltando.length > visiveis.length && (
+                  <button type="button" className="px-1 text-xs text-marca hover:underline" onClick={() => setVerTodos(true)}>
+                    +{faltando.length - visiveis.length} mais
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
         <div>
           <label className="label" htmlFor="bairros">Bairros (opcional)</label>
