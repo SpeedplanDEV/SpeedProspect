@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Check, ChevronLeft, ChevronRight, Loader2, Minus, Plus, RefreshCw, Save, Star, Trash2, X } from 'lucide-react';
+import { Check, CheckCircle2, ChevronLeft, ChevronRight, Loader2, Minus, Plus, RefreshCw, Save, Send, Star, Trash2, X } from 'lucide-react';
 import { LIMITES, type ConteudoLP } from '@shared/conteudo';
 import { supabase } from '@/lib/supabase';
 import { chamarFuncao, textoResumoGeracao, type ResumoGeracao } from '@/lib/funcoes';
@@ -97,9 +97,13 @@ export default function Aprovacao() {
     [leads, indice],
   );
 
+  /** Aprovados nesta sessão (para mostrar para onde foram) */
+  const [aprovados, setAprovados] = useState<string[]>([]);
+
   /** Remove o lead processado e seleciona o próximo da fila */
   const concluir = useCallback(
-    (leadId: string) => {
+    (leadId: string, aprovadoNome?: string) => {
+      if (aprovadoNome) setAprovados((a) => [...a, aprovadoNome]);
       const resto = leads.filter((l) => l.id !== leadId);
       setIdAtual(resto[Math.min(indice, resto.length - 1)]?.id ?? null);
       qc.setQueryData<LeadComSite[]>(['aprovacao'], resto);
@@ -124,6 +128,24 @@ export default function Aprovacao() {
         </span>
       }
     >
+      {aprovados.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm">
+          <CheckCircle2 size={18} className="shrink-0 text-emerald-600" />
+          <div className="min-w-0 flex-1">
+            <p className="font-medium">
+              {aprovados.length === 1 ? `${aprovados[0]} foi aprovado.` : `${aprovados.length} prévias aprovadas nesta sessão.`}
+            </p>
+            <p className="text-suave">
+              A prévia foi publicada (o link já funciona) e a mensagem foi para a tela <b className="font-medium text-texto">Envios</b>,
+              onde você envia pelo WhatsApp com 1 clique.
+            </p>
+          </div>
+          <Link to="/envios" className="btn-primario shrink-0">
+            <Send size={15} /> Ir para Envios
+          </Link>
+        </div>
+      )}
+
       {fila.error ? (
         <Erro erro={fila.error} />
       ) : fila.isLoading ? (
@@ -132,7 +154,11 @@ export default function Aprovacao() {
         <div className="card">
           <Vazio>
             Nenhuma prévia aguardando aprovação.{' '}
-            <Link to="/leads" className="text-marca hover:underline">Gere prévias em Leads</Link>.
+            {aprovados.length ? (
+              <>As aprovadas estão em <Link to="/envios" className="text-marca hover:underline">Envios</Link>, prontas para enviar.</>
+            ) : (
+              <Link to="/leads" className="text-marca hover:underline">Gere prévias em Leads</Link>
+            )}
           </Vazio>
         </div>
       ) : (
@@ -204,7 +230,7 @@ function CartaoAprovacao({ lead, posicao, total, cfg, aoNavegar, aoConcluir, aoA
   total: number;
   cfg: Awaited<ReturnType<typeof carregarConfigMensagem>>;
   aoNavegar: (delta: number) => void;
-  aoConcluir: (leadId: string) => void;
+  aoConcluir: (leadId: string, aprovadoNome?: string) => void;
   aoAtualizarSite: (site: Site) => void;
   toast: ReturnType<typeof useToast>;
 }) {
@@ -263,8 +289,8 @@ function CartaoAprovacao({ lead, posicao, total, cfg, aoNavegar, aoConcluir, aoA
       await aprovarPrevia(lead.id, texto.trim());
     },
     onSuccess: () => {
-      toast(`${lead.nome} aprovado — mensagem na fila de Envios`);
-      aoConcluir(lead.id);
+      toast(`${lead.nome} aprovado — a mensagem está em Envios`);
+      aoConcluir(lead.id, lead.nome);
     },
     onError: (e: Error) => toast(e.message, 'erro'),
   });
@@ -451,15 +477,19 @@ function CartaoAprovacao({ lead, posicao, total, cfg, aoNavegar, aoConcluir, aoA
                 )}
               </div>
               <textarea className="input min-h-[150px] text-[13px] leading-relaxed" value={texto} onChange={(e) => setTexto(e.target.value)} aria-label="Mensagem de primeiro contato" />
-              <p className="mt-1 text-xs text-fraco">Você ainda poderá ajustar o texto na tela de Envios.</p>
+              <p className="mt-1 text-xs text-fraco">Você ainda poderá ajustar o texto na tela Envios antes de mandar.</p>
             </section>
 
             {/* Ações */}
             <section className="space-y-2">
               <button className="btn-primario w-full py-2" onClick={() => aprovar.mutate()} disabled={ocupado}>
                 {aprovar.isPending ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                Aprovar e colocar na fila <Kbd>A</Kbd>
+                Aprovar e mandar para Envios <Kbd>A</Kbd>
               </button>
+              <p className="text-xs text-fraco">
+                Ao aprovar: a prévia é publicada (o link passa a funcionar) e esta mensagem vai para a tela{' '}
+                <Link to="/envios" className="text-marca hover:underline">Envios</Link>. Nada é enviado sozinho.
+              </p>
               <div className="grid grid-cols-2 gap-2">
                 <button className={`btn-secundario ${painel === 'regenerar' ? 'border-marca' : ''}`} onClick={() => setPainel(painel === 'regenerar' ? null : 'regenerar')} disabled={ocupado}>
                   <RefreshCw size={15} /> Regenerar <Kbd>R</Kbd>
