@@ -67,6 +67,10 @@ export default function Aprovacao() {
 
   const fila = useQuery({
     queryKey: ['aprovacao'],
+    // Sempre busca de novo ao abrir a tela / voltar para a aba: status mudados em outras telas aparecem na hora
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leads')
@@ -129,9 +133,14 @@ export default function Aprovacao() {
           : 'Revise as prévias geradas antes de enviar'
       }
       acoes={
-        <span className="hidden items-center gap-1.5 text-xs text-fraco md:flex">
-          Atalhos: <Kbd>A</Kbd> aprovar <Kbd>R</Kbd> regenerar <Kbd>D</Kbd> descartar <Kbd>←</Kbd><Kbd>→</Kbd> navegar
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="hidden items-center gap-1.5 text-xs text-fraco md:flex">
+            Atalhos: <Kbd>A</Kbd> aprovar <Kbd>R</Kbd> regenerar <Kbd>D</Kbd> descartar <Kbd>←</Kbd><Kbd>→</Kbd> navegar
+          </span>
+          <button className="btn-secundario" onClick={() => fila.refetch()} disabled={fila.isFetching} title="Buscar prévias novas">
+            <RefreshCw size={15} className={fila.isFetching ? 'animate-spin' : ''} /> Atualizar
+          </button>
+        </div>
       }
     >
       {aprovados.length > 0 && (

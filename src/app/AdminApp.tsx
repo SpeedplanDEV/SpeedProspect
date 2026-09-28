@@ -1,6 +1,6 @@
 import { lazy, useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, RotaProtegida } from './auth';
 import { TemaProvider } from './tema';
 import { ToastProvider } from '@/components/ui/Toast';
@@ -18,7 +18,14 @@ const Envios = lazy(() => import('@/pages/Envios'));
 const Funil = lazy(() => import('@/pages/Funil'));
 const ContasAds = lazy(() => import('@/pages/ads/Contas'));
 
-const queryClient = new QueryClient({
+// Depois de qualquer alteração (aprovar, mudar status, descartar…), as telas abertas buscam os dados de novo
+// e as outras ficam marcadas para atualizar ao serem abertas — sem precisar recarregar a página.
+const queryClient: QueryClient = new QueryClient({
+  mutationCache: new MutationCache({
+    onSuccess: () => {
+      void queryClient.invalidateQueries();
+    },
+  }),
   defaultOptions: { queries: { staleTime: 30_000, refetchOnWindowFocus: false, retry: 1 } },
 });
 

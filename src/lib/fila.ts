@@ -102,29 +102,48 @@ export interface Painel {
 
 export const painelDashboard = (mes?: string) => rpc<Painel>('painel_dashboard', mes ? { p_mes: mes } : {});
 
+/** Lead aprovado que não está na fila de Envios, com o motivo */
+export interface AprovadoForaDaFila { id: string; nome: string; motivo: string }
+
+export interface Recuperacao { recuperadas: number; fora: AprovadoForaDaFila[] }
+
 /**
- * Leads "aprovado" sem mensagem de primeiro contato (acontecia na aprovação automática sem a URL do app):
- * cria a mensagem agora, com o endereço do painel como URL. Devolve quantas foram recuperadas.
+ * Leads "aprovado" cuja mensagem de primeiro contato não está na fila (não existe ou foi pulada).
+ * Acontecia na aprovação automática sem a URL do app, ao mudar o status à mão para "Aprovado"
+ * ou ao aprovar de novo uma prévia cuja mensagem tinha sido pulada. Cria/reativa a mensagem agora
+ * e devolve quantas voltaram para a fila e quais continuam fora (com o motivo).
  */
-export async function recuperarAprovadasSemMensagem(): Promise<number> {
+export async function recuperarAprovadasSemMensagem(): Promise<Recuperacao> {
   const { data: aprovados, error } = await supabase.from('leads').select('*').eq('status_funil', 'aprovado').limit(200);
-  if (error || !aprovados?.length) return 0;
+  if (error || !aprovados?.length) return { recuperadas: 0, fora: [] };
   const ids = aprovados.map((l) => l.id as string);
   const [{ data: msgs }, { data: sites }] = await Promise.all([
-    supabase.from('mensagens').select('lead_id').eq('tipo', 'primeiro_contato').in('lead_id', ids),
+    supabase.from('mensagens').select('lead_id,status').eq('tipo', 'primeiro_contato').in('lead_id', ids),
     supabase.from('sites').select('lead_id,slug,token_acesso').in('lead_id', ids),
   ]);
-  const comMensagem = new Set((msgs ?? []).map((m) => m.lead_id as string));
+  const statusMsg = new Map((msgs ?? []).map((m) => [m.lead_id as string, m.status as string]));
   const sitePorLead = new Map((sites ?? []).map((s) => [s.lead_id as string, s as Pick<Site, 'slug' | 'token_acesso'>]));
-  const faltando = (aprovados as Lead[]).filter((l) => !comMensagem.has(l.id) && sitePorLead.has(l.id));
-  if (!faltando.length) return 0;
-  const cfg = await carregarConfigMensagem();
-  let n = 0;
+  const faltando = (aprovados as Lead[]).filter((l) => !['pendente', 'enviada'].includes(statusMsg.get(l.id) ?? ''));
+  if (!faltando.length) return { recuperadas: 0, fora: [] };
+
+  const fora: AprovadoForaDaFila[] = [];
+  let recuperadas = 0;
+  let cfg: ConfigMensagem | null = null;
   for (const l of faltando) {
+    const site = sitePorLead.get(l.id);
+    if (!site) {
+      fora.push({ id: l.id, nome: l.nome, motivo: 'Não tem prévia gerada. Gere a prévia pela tela de Leads e aprove em Aprovação.' });
+      continue;
+    }
     try {
-      await aprovarPrevia(l.id, mensagemPrimeiroContato(l, sitePorLead.get(l.id)!, cfg));
-      n++;
-    } catch { /* segue para o próximo */ }
+      cfg ??= await carregarConfigMensagem();
+      await aprovarPrevia(l.id, mensagemPrimeiroContato(l, site, cfg));
+      const { data: m } = await supabase.from('mensagens').select('status').eq('lead_id', l.id).eq('tipo', 'primeiro_contato').maybeSingle();
+      if (m?.status === 'pendente' || m?.status === 'enviada') recuperadas++;
+      else fora.push({ id: l.id, nome: l.nome, motivo: 'A mensagem tinha sido pulada. Rode no Supabase o SQL 20261004000000_aprovar_reativa.sql para ela voltar à fila.' });
+    } catch (e) {
+      fora.push({ id: l.id, nome: l.nome, motivo: e instanceof Error ? e.message : String(e) });
+    }
   }
-  return n;
+  return { recuperadas, fora };
 }

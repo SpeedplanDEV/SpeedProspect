@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { CalendarClock, Copy, ExternalLink, Loader2, MessageCircle, SkipForward, Star, X } from 'lucide-react';
+import { AlertTriangle, CalendarClock, Copy, ExternalLink, Loader2, MessageCircle, SkipForward, Star, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { agendarFollowups, recuperarAprovadasSemMensagem, linkWhatsApp, type ResumoFollowups, pularMensagem, registrarEnvio, resumoEnvios } from '@/lib/fila';
+import { type AprovadoForaDaFila, agendarFollowups, recuperarAprovadasSemMensagem, linkWhatsApp, type ResumoFollowups, pularMensagem, registrarEnvio, resumoEnvios } from '@/lib/fila';
 import { formatarData, formatarNumero, formatarTelefone, paraE164 } from '@/lib/format';
 import { rotuloNicho, type Mensagem } from '@/lib/types';
 import { Badge, Erro, Pagina, Vazio } from '@/components/ui/Pagina';
@@ -66,11 +66,21 @@ export default function Envios() {
     agendarMutate(false);
   }, [agendarMutate]);
 
+  /** Aprovados que não conseguiram entrar na fila (com o motivo) */
+  const [fora, setFora] = useState<AprovadoForaDaFila[]>([]);
+
   const fila = useQuery({
     queryKey: ['envios', 'fila'],
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
     queryFn: async () => {
-      // Aprovadas que ficaram sem mensagem (ex.: aprovação automática sem URL do app) ganham a mensagem agora
-      await recuperarAprovadasSemMensagem().catch(() => 0);
+      // Aprovadas sem mensagem na fila (aprovação automática sem URL do app, status mudado à mão, mensagem pulada)
+      // ganham/reativam a mensagem agora
+      const r = await recuperarAprovadasSemMensagem().catch(() => ({ recuperadas: 0, fora: [] as AprovadoForaDaFila[] }));
+      setFora(r.fora);
+      if (r.recuperadas) qc.invalidateQueries({ queryKey: ['contadores'] });
       const { data, error } = await supabase
         .from('mensagens')
         .select('*')
@@ -138,6 +148,21 @@ export default function Envios() {
             <ExternalLink size={15} /> Abrir WhatsApp
           </a>
           <button className="text-fraco hover:text-texto" onClick={() => setLinkPendente(null)} aria-label="Fechar"><X size={15} /></button>
+        </div>
+      )}
+
+      {fora.length > 0 && (
+        <div role="alert" className="mb-4 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+          <div className="flex items-center gap-2 font-medium">
+            <AlertTriangle size={15} className="shrink-0" />
+            {fora.length === 1 ? '1 lead aprovado não entrou na fila' : `${fora.length} leads aprovados não entraram na fila`}
+          </div>
+          <ul className="mt-1.5 space-y-1 pl-6 text-xs">
+            {fora.slice(0, 10).map((f) => (
+              <li key={f.id}><b className="font-medium">{f.nome}</b>: {f.motivo}</li>
+            ))}
+            {fora.length > 10 && <li>… e mais {fora.length - 10}</li>}
+          </ul>
         </div>
       )}
 
