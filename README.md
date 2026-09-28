@@ -235,6 +235,12 @@ pg_cron (UTC)            → sp_chamar_pipeline(etapa)  → pg_net POST → Edge
    ```
 4. Ligue em Configurações → **Rodar o pipeline automaticamente todo dia** e use **Testar pelo cron** em Execuções.
 
+## Mensagens do WhatsApp editáveis
+
+Em **Configurações → Mensagens do WhatsApp** dá para mudar o texto padrão do primeiro contato (sem site e site fraco) e dos follow-ups 1 e 2. Os campos entre chaves são preenchidos sozinhos: `{saudacao}`, `{nome}`, `{primeiro_nome_ou_empresa}`, `{frase_google}`, `{rating}`, `{reviews_count}`, `{link}`, `{negocio_nome}`, `{preco_texto}` e `{data_limite}`. Se um modelo ficar vazio, volta a valer o texto padrão. As mensagens que já estão na fila não mudam, mas cada uma pode ser editada em Envios.
+
+Setup: rode `supabase/migrations/20261005000000_modelos_mensagem.sql` no SQL Editor. Para a aprovação automática usar os modelos, republique também a função `quick-handler` com `supabase/editor/gerar-previa.ts`.
+
 ## Subir do zero (resumo)
 1. Supabase: crie o projeto, rode as migrations de `supabase/migrations/` **em ordem** no SQL Editor e crie o
    usuário operador (Authentication → Users → Add user, "Auto confirm"). Desative "Allow new users to sign up".

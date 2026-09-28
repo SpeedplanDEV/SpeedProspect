@@ -32,14 +32,11 @@ export const pularMensagem = (mensagemId: string, motivo: string) =>
   rpc('pular_mensagem', { p_mensagem_id: mensagemId, p_motivo: motivo });
 
 /** Configurações usadas para montar as mensagens */
-export type ConfigMensagem = Pick<Configuracoes, 'app_url' | 'negocio_nome' | 'preco_texto' | 'limite_envios_dia'>;
+export type ConfigMensagem = Pick<Configuracoes, 'app_url' | 'negocio_nome' | 'preco_texto' | 'limite_envios_dia' | 'modelos_mensagem'>;
 
 export async function carregarConfigMensagem(): Promise<ConfigMensagem> {
-  const { data, error } = await supabase
-    .from('configuracoes')
-    .select('app_url,negocio_nome,preco_texto,limite_envios_dia')
-    .eq('id', 1)
-    .single();
+  // '*': funciona antes e depois do SQL que cria os modelos de mensagem
+  const { data, error } = await supabase.from('configuracoes').select('*').eq('id', 1).single();
   if (error) throw error;
   return data as ConfigMensagem;
 }
@@ -58,7 +55,7 @@ export function mensagemPrimeiroContato(lead: Lead, site: Pick<Site, 'slug' | 't
     link: linkPrevia(appUrlDe(cfg), site.slug, site.token_acesso),
     negocio_nome: cfg.negocio_nome,
     preco_texto: cfg.preco_texto,
-  });
+  }, cfg.modelos_mensagem);
 }
 
 /** Link do WhatsApp (wa.me aceita o número E.164 sem o "+") */

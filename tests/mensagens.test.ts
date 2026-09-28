@@ -37,4 +37,21 @@ describe('mensagens', () => {
     expect(linkPrevia('https://app.com/', 's', 'k')).toBe('https://app.com/p/s?k=k');
     expect(primeiroNomeOuEmpresa('Dra. Ana Souza')).toBe('Ana');
   });
+
+  it('usa o modelo personalizado quando preenchido', () => {
+    const modelos = { primeiro_contato: 'Olá {primeiro_nome_ou_empresa}! {frase_google}\nVeja: {link}\n— {negocio_nome}' };
+    const t = textoMensagem('primeiro_contato', base, modelos);
+    expect(t.startsWith('Olá ')).toBe(true);
+    expect(t).toContain(base.link);
+    expect(t).toContain('avaliações no Google');
+    expect(t).not.toMatch(/\{\w+\}/);
+  });
+  it('modelo vazio volta ao padrão', () => {
+    expect(textoMensagem('primeiro_contato', base, { primeiro_contato: '   ' })).toBe(textoMensagem('primeiro_contato', base));
+  });
+  it('follow-ups personalizados e data limite', () => {
+    const m = { followup_1_abriu: 'Curtiu, {nome}?', followup_2: 'Até {data_limite}, {nome}.' };
+    expect(textoMensagem('followup_1', { ...base, abriu: true }, m)).toBe(`Curtiu, ${base.nome}?`);
+    expect(textoMensagem('followup_2', { ...base, data_limite: '01/11/2026' }, m)).toBe(`Até 01/11/2026, ${base.nome}.`);
+  });
 });

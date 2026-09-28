@@ -13,7 +13,7 @@ import {
   ajustarConteudoIA, gerarSlugBase, montarConteudoLP, montarEntradaIA, proximoSlugLivre, type LeadParaPrevia,
 } from '../_shared/previa.ts';
 import { ehNichoLP } from '../_shared/conteudo.ts';
-import { linkPrevia, textoMensagem } from '../_shared/mensagens.ts';
+import { linkPrevia, textoMensagem, type ModelosMensagem } from '../_shared/mensagens.ts';
 import { paraReais } from '../_shared/custos.ts';
 import { Execucao } from '../_shared/log.ts';
 
@@ -40,6 +40,7 @@ const CAMPOS_LEAD =
 type Lead = LeadParaPrevia & { status_funil: string; place_id: string; falhas_previa: number };
 type Config = {
   negocio_nome: string; app_url: string; limite_geracoes_dia: number; auto_aprovar: boolean; modelo_ia: string; preco_texto: string;
+  modelos_mensagem?: ModelosMensagem | null;
 };
 type Db = ReturnType<typeof admin>;
 
@@ -68,7 +69,7 @@ Deno.serve(async (req) => {
 
   const { data: cfg, error: eCfg } = await db
     .from('configuracoes')
-    .select('negocio_nome,app_url,limite_geracoes_dia,auto_aprovar,modelo_ia,preco_texto')
+    .select('*') // '*' funciona antes e depois do SQL dos modelos de mensagem
     .eq('id', 1)
     .single<Config>();
   if (eCfg) return json({ erro: eCfg.message }, 500);
@@ -335,7 +336,7 @@ async function salvarPrevia(
         link: linkPrevia(appUrl, site.slug, site.token_acesso),
         negocio_nome: cfg.negocio_nome,
         preco_texto: cfg.preco_texto,
-      });
+      }, cfg.modelos_mensagem);
       const { error: eMsg } = await db.from('mensagens').insert({ lead_id: lead.id, tipo: 'primeiro_contato', texto });
       if (eMsg && eMsg.code !== '23505') throw new Error(`Erro ao criar a mensagem: ${eMsg.message}`);
     }

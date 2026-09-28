@@ -491,9 +491,14 @@ function CartaoAprovacao({ lead, posicao, total, cfg, aoNavegar, aoConcluir, aoA
             <section>
               <div className="mb-2 flex items-center justify-between">
                 <h3 className="text-sm font-medium">Mensagem de primeiro contato</h3>
-                {texto !== textoPadrao && (
-                  <button className="text-xs text-marca hover:underline" onClick={() => setTexto(textoPadrao)}>Restaurar texto</button>
-                )}
+                <div className="flex items-center gap-3 text-xs">
+                  {texto !== textoPadrao && (
+                    <button className="text-marca hover:underline" onClick={() => setTexto(textoPadrao)}>Restaurar texto</button>
+                  )}
+                  <Link to="/configuracoes#mensagens" className="text-suave hover:text-marca hover:underline" title="Muda o texto padrão de todas as próximas mensagens">
+                    Editar modelo
+                  </Link>
+                </div>
               </div>
               <textarea className="input min-h-[150px] leading-relaxed sm:text-[13px]" value={texto} onChange={(e) => setTexto(e.target.value)} aria-label="Mensagem de primeiro contato" />
               <p className="mt-1 text-xs text-fraco">Você ainda poderá ajustar o texto na tela Envios antes de mandar.</p>

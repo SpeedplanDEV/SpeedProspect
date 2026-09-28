@@ -125,6 +125,9 @@ export default function Envios() {
     <Pagina
       titulo="Envios"
       descricao="Revise o texto e envie pelo WhatsApp com um clique. Nada é enviado automaticamente."
+      rodapeTitulo={
+        <Link to="/configuracoes#mensagens" className="text-xs text-marca hover:underline">Editar os modelos de mensagem</Link>
+      }
       acoes={
         resumo.data && (
           <div className="w-52 text-right">

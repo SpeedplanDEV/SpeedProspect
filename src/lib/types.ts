@@ -1,4 +1,5 @@
 // Tipos das tabelas (espelham supabase/migrations)
+import type { ModelosMensagem } from '@shared/mensagens';
 
 export type Nicho = 'saude' | 'alimentacao' | 'automotivo' | 'beleza' | 'servicos';
 
@@ -33,6 +34,8 @@ export interface Configuracoes {
   preco_texto: string;
   automacao_ativa?: boolean;
   alerta_custo_mes?: number;
+  /** Modelos de WhatsApp personalizados (ausente antes do SQL 20261005000000_modelos_mensagem.sql) */
+  modelos_mensagem?: ModelosMensagem | null;
   atualizado_em: string;
 }
 

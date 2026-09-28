@@ -10,6 +10,7 @@ import type { Configuracoes as Config } from '@/lib/types';
 import { CampoErro, Erro, Pagina } from '@/components/ui/Pagina';
 import { Switch } from '@/components/ui/Switch';
 import { LogoAgencia } from '@/components/LogoAgencia';
+import { ModelosMensagem } from '@/components/ModelosMensagem';
 import { useToast } from '@/components/ui/Toast';
 
 export default function Configuracoes() {
@@ -38,6 +39,15 @@ export default function Configuracoes() {
         alerta_custo_mes: data.alerta_custo_mes ?? 100,
       });
   }, [data, reset]);
+
+  // Link direto para a seção de mensagens (/configuracoes#mensagens)
+  useEffect(() => {
+    if (data && window.location.hash === '#mensagens') {
+      requestAnimationFrame(() => {
+        document.getElementById('mensagens')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  }, [data]);
 
   // Antes do SQL da Fase 7 as colunas de automação não existem: não envia esses campos
   const temFase7 = !!data && 'automacao_ativa' in data;
@@ -223,6 +233,11 @@ export default function Configuracoes() {
             </fieldset>
           </section>
         </form>
+      )}
+      {data && (
+        <div className="mt-4">
+          <ModelosMensagem config={data} />
+        </div>
       )}
     </Pagina>
   );

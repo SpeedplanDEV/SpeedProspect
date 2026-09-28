@@ -1,9 +1,11 @@
 import type { ReactNode } from 'react';
 
 /** Cabeçalho + conteúdo padrão das páginas do painel */
-export function Pagina({ titulo, descricao, acoes, children }: {
+export function Pagina({ titulo, descricao, rodapeTitulo, acoes, children }: {
   titulo: string;
   descricao?: string;
+  /** Linha extra abaixo da descrição (ex.: um link) */
+  rodapeTitulo?: ReactNode;
   acoes?: ReactNode;
   children: ReactNode;
 }) {
@@ -13,6 +15,7 @@ export function Pagina({ titulo, descricao, acoes, children }: {
         <div className="min-w-0">
           <h1 className="text-lg font-medium sm:text-xl">{titulo}</h1>
           {descricao && <p className="mt-0.5 text-sm text-suave">{descricao}</p>}
+          {rodapeTitulo && <div className="mt-1">{rodapeTitulo}</div>}
         </div>
         {acoes && <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">{acoes}</div>}
       </div>
