@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, CalendarClock, Copy, ExternalLink, Loader2, MessageCircle, SkipForward, Star, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { type AprovadoForaDaFila, agendarFollowups, recuperarAprovadasSemMensagem, linkWhatsApp, type ResumoFollowups, pularMensagem, registrarEnvio, resumoEnvios } from '@/lib/fila';
+import { type AprovadoForaDaFila, agendarFollowups, recuperarAprovadasSemMensagem, voltarParaFila, linkWhatsApp, type ResumoFollowups, pularMensagem, registrarEnvio, resumoEnvios } from '@/lib/fila';
 import { formatarData, formatarNumero, formatarTelefone, paraE164 } from '@/lib/format';
 import { rotuloNicho, type Mensagem } from '@/lib/types';
 import { Badge, Erro, Pagina, Vazio } from '@/components/ui/Pagina';
@@ -68,6 +68,13 @@ export default function Envios() {
 
   /** Aprovados que não conseguiram entrar na fila (com o motivo) */
   const [fora, setFora] = useState<AprovadoForaDaFila[]>([]);
+
+  /** Mensagens já enviadas que o operador decidiu mandar de novo */
+  const devolver = useMutation({
+    mutationFn: (ids: string[]) => voltarParaFila(ids),
+    onSuccess: (_r, ids) => toast(ids.length === 1 ? 'Mensagem de volta na fila' : `${ids.length} mensagens de volta na fila`),
+    onError: (e: Error) => toast(e.message, 'erro'),
+  });
 
   const fila = useQuery({
     queryKey: ['envios', 'fila'],
@@ -155,14 +162,34 @@ export default function Envios() {
         <div role="alert" className="mb-4 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
           <div className="flex items-center gap-2 font-medium">
             <AlertTriangle size={15} className="shrink-0" />
-            {fora.length === 1 ? '1 lead aprovado não entrou na fila' : `${fora.length} leads aprovados não entraram na fila`}
+            {fora.length === 1 ? '1 lead aprovado está fora da fila' : `${fora.length} leads aprovados estão fora da fila`}
           </div>
-          <ul className="mt-1.5 space-y-1 pl-6 text-xs">
+          <ul className="mt-1.5 space-y-1.5 pl-6 text-xs">
             {fora.slice(0, 10).map((f) => (
-              <li key={f.id}><b className="font-medium">{f.nome}</b>: {f.motivo}</li>
+              <li key={f.id} className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span><b className="font-medium">{f.nome}</b>: {f.motivo}</span>
+                {f.mensagemEnviadaId && (
+                  <button
+                    className="rounded border border-amber-600/40 px-2 py-0.5 font-medium hover:bg-amber-500/15 disabled:opacity-50"
+                    disabled={devolver.isPending}
+                    onClick={() => devolver.mutate([f.mensagemEnviadaId!])}
+                  >
+                    Enviar de novo
+                  </button>
+                )}
+              </li>
             ))}
             {fora.length > 10 && <li>… e mais {fora.length - 10}</li>}
           </ul>
+          {fora.filter((f) => f.mensagemEnviadaId).length > 1 && (
+            <button
+              className="btn-secundario mt-2 ml-6"
+              disabled={devolver.isPending}
+              onClick={() => devolver.mutate(fora.flatMap((f) => (f.mensagemEnviadaId ? [f.mensagemEnviadaId] : [])))}
+            >
+              {devolver.isPending && <Loader2 size={15} className="animate-spin" />} Colocar todas na fila de novo
+            </button>
+          )}
         </div>
       )}
 

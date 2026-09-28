@@ -103,7 +103,13 @@ export interface Painel {
 export const painelDashboard = (mes?: string) => rpc<Painel>('painel_dashboard', mes ? { p_mes: mes } : {});
 
 /** Lead aprovado que não está na fila de Envios, com o motivo */
-export interface AprovadoForaDaFila { id: string; nome: string; motivo: string }
+export interface AprovadoForaDaFila {
+  id: string;
+  nome: string;
+  motivo: string;
+  /** Id da mensagem de primeiro contato já enviada (pode voltar para a fila por decisão do operador) */
+  mensagemEnviadaId?: string;
+}
 
 export interface Recuperacao { recuperadas: number; fora: AprovadoForaDaFila[] }
 
@@ -118,15 +124,25 @@ export async function recuperarAprovadasSemMensagem(): Promise<Recuperacao> {
   if (error || !aprovados?.length) return { recuperadas: 0, fora: [] };
   const ids = aprovados.map((l) => l.id as string);
   const [{ data: msgs }, { data: sites }] = await Promise.all([
-    supabase.from('mensagens').select('lead_id,status').eq('tipo', 'primeiro_contato').in('lead_id', ids),
+    supabase.from('mensagens').select('id,lead_id,status,enviada_em').eq('tipo', 'primeiro_contato').in('lead_id', ids),
     supabase.from('sites').select('lead_id,slug,token_acesso').in('lead_id', ids),
   ]);
-  const statusMsg = new Map((msgs ?? []).map((m) => [m.lead_id as string, m.status as string]));
+  const msgPorLead = new Map((msgs ?? []).map((m) => [m.lead_id as string, m as { id: string; status: string; enviada_em: string | null }]));
+  const statusMsg = new Map([...msgPorLead].map(([k, m]) => [k, m.status]));
   const sitePorLead = new Map((sites ?? []).map((s) => [s.lead_id as string, s as Pick<Site, 'slug' | 'token_acesso'>]));
-  const faltando = (aprovados as Lead[]).filter((l) => !['pendente', 'enviada'].includes(statusMsg.get(l.id) ?? ''));
-  if (!faltando.length) return { recuperadas: 0, fora: [] };
-
   const fora: AprovadoForaDaFila[] = [];
+  // Mensagem já enviada, mas o lead voltou para "aprovado": nunca volta sozinha para a fila, o operador decide
+  for (const l of aprovados as Lead[]) {
+    const m = msgPorLead.get(l.id);
+    if (m?.status !== 'enviada') continue;
+    const quando = m.enviada_em
+      ? new Date(m.enviada_em).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+      : 'antes';
+    fora.push({ id: l.id, nome: l.nome, motivo: `A mensagem já foi enviada em ${quando}.`, mensagemEnviadaId: m.id });
+  }
+  const faltando = (aprovados as Lead[]).filter((l) => !['pendente', 'enviada'].includes(statusMsg.get(l.id) ?? ''));
+  if (!faltando.length) return { recuperadas: 0, fora };
+
   let recuperadas = 0;
   let cfg: ConfigMensagem | null = null;
   for (const l of faltando) {
@@ -146,4 +162,16 @@ export async function recuperarAprovadasSemMensagem(): Promise<Recuperacao> {
     }
   }
   return { recuperadas, fora };
+}
+
+/** Devolve à fila de hoje mensagens de primeiro contato já enviadas (ação explícita do operador) */
+export async function voltarParaFila(mensagemIds: string[]): Promise<void> {
+  if (!mensagemIds.length) return;
+  const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const { error } = await supabase
+    .from('mensagens')
+    .update({ status: 'pendente', enviada_em: null, motivo_pulo: null, agendada_para: hoje })
+    .in('id', mensagemIds)
+    .eq('tipo', 'primeiro_contato');
+  if (error) throw error;
 }
